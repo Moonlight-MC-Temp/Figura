@@ -113,6 +113,13 @@ public class LocalAvatarLoader {
 		Path finalPath = path;
 		async(() -> {
 			try {
+				// try to load a moon and return early
+				final var moonPath = finalPath.resolve("avatar.moon");
+				if (Files.exists(moonPath)) {
+					target.loadAvatar(NbtIo.readCompressed(moonPath.toFile()));
+					return;
+				}
+
 				// load as folder
 				CompoundTag nbt = new CompoundTag();
 
@@ -154,6 +161,10 @@ public class LocalAvatarLoader {
 					loadResources(nbt, metadataTag.getList("resources_paths", Tag.TAG_STRING), finalPath);
 					metadataTag.remove("resource_paths");
 				}
+
+				// Output moon for debugging
+				if (Configs.DUMP_MOONS.value)
+					NbtIo.writeCompressed(nbt, finalPath.resolve("compiled.moon").toFile());
 
 				// load
 				target.loadAvatar(nbt);

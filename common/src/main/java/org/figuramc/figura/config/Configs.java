@@ -240,7 +240,7 @@ public class Configs {
 	// -- DEV -- //
 	public static final ConfigType.BoolConfig DEBUG_MODE = new ConfigType.BoolConfig("debug_mode", DEV, false, false);
 	public static final ConfigType.BoolConfig LOCAL_ASSETS = new ConfigType.BoolConfig("local_assets", DEV, false, false);
-
+	public static final ConfigType.BoolConfig DUMP_MOONS = new ConfigType.BoolConfig("dump_moons", DEV, false, false);
 	public static final ConfigType.BoolConfig CONNECTION_TOASTS = new ConfigType.BoolConfig("connection_toasts", DEV, false),
 			LOG_OTHERS = new ConfigType.BoolConfig("log_others", DEV, false);
 	public static final ConfigType.EnumConfig LOG_PINGS = new ConfigType.EnumConfig("log_pings", DEV, 0, 3);
