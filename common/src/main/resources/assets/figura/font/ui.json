@@ -17,14 +17,14 @@
       "type": "bitmap",
       "file": "figura:font/status.png",
       "ascent": 8,
-      "height": 10,
+      "height": 8,
       "chars": ["-*/+="]
     },
     {
       "type": "bitmap",
       "file": "figura:font/icons.png",
-      "ascent": 8,
-      "height": 10,
+      "ascent": 7,
+      "height": 8,
       "chars": ["★\uD83D\uDD0E?"]
     }
   ]

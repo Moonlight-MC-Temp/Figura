@@ -74,7 +74,7 @@ public abstract class AbstractAvatarWidget extends AbstractContainerElement impl
         if (favourite) {
             Font font = Minecraft.getInstance().font;
             int width = font.width(FAVOURITE);
-            int x = this.getX() + this.getWidth() - width;
+            int x = this.getX() + this.getWidth() - (width + 2);
             int y = this.getY() + 2;
 
             gui.drawString(font, FAVOURITE, x, y, 0xFFFFFF, false);

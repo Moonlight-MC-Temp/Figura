@@ -61,11 +61,11 @@ public class PlayerList extends AbstractList {
         }));
 
         // show figura only button
-        children.add(showFigura = new SwitchButton(x + width - 48, y + 4, 20, 20, 0, 0, 20, new FiguraIdentifier("textures/gui/show_figura.png"), 60, 40, FiguraText.of("gui.permissions.figura_only.tooltip"), button -> showFiguraBl = ((SwitchButton) button).isToggled()));
+        children.add(showFigura = new SwitchButton(x + width - 48, y + 4, 16, 16, 0, 0, 16, new FiguraIdentifier("textures/gui/button_social.png"), 96, 32, FiguraText.of("gui.permissions.figura_only.tooltip"), button -> showFiguraBl = ((SwitchButton) button).isToggled()));
         showFigura.setToggled(showFiguraBl);
 
         // show disconnected button
-        children.add(showDisconnected = new SwitchButton(x + width - 24, y + 4, 20, 20, 0, 0, 20, new FiguraIdentifier("textures/gui/show_disconnected.png"), 60, 40, FiguraText.of("gui.permissions.disconnected.tooltip"), button -> showDisconnectedBl = ((SwitchButton) button).isToggled()));
+        children.add(showDisconnected = new SwitchButton(x + width - 24, y + 4, 16, 16, 48, 0, 16, new FiguraIdentifier("textures/gui/button_social.png"), 96, 32, FiguraText.of("gui.permissions.disconnected.tooltip"), button -> showDisconnectedBl = ((SwitchButton) button).isToggled()));
         showDisconnected.setToggled(showDisconnectedBl);
 
         // initial load

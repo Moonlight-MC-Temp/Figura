@@ -127,7 +127,7 @@ public class SoundsList extends AbstractList {
             this.size = Component.literal("(" + MathUtils.asFileSize(len) + ")").withStyle(ChatFormatting.GRAY);
 
             // play button
-            children.add(0, play = new ParentedButton(0, 0, 20, 20, 0, 0, 20, new FiguraIdentifier("textures/gui/play.png"), 60, 20, FiguraText.of("gui.sound.play"), this, button -> {}) {
+            children.add(0, play = new ParentedButton(0, 0, 16, 16, 96, 0, 16, new FiguraIdentifier("textures/gui/button_avatar_management.png"), 144, 48, FiguraText.of("gui.sound.play"), this, button -> {}) {
                 @Override
                 public void playDownSound(SoundManager soundManager) {
                     Vec3 vec =  Minecraft.getInstance().player == null ? new Vec3(0, 0, 0) : Minecraft.getInstance().player.position();
@@ -136,7 +136,7 @@ public class SoundsList extends AbstractList {
             });
 
             // stop button
-            children.add(stop = new ParentedButton(0, 0, 20, 20, 0, 0, 20, new FiguraIdentifier("textures/gui/stop.png"), 60, 20, FiguraText.of("gui.sound.stop"), this,
+            children.add(stop = new ParentedButton(0, 0, 16, 16, 96, 16, 16, new FiguraIdentifier("textures/gui/button_avatar_management.png"), 144, 48, FiguraText.of("gui.sound.stop"), this,
                     button -> SoundAPI.getSoundEngine().figura$stopSound(owner.owner, name))
             );
         }

@@ -76,7 +76,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         int buttY = entity.getY() + entity.getHeight() + 4;
 
         // upload
-        addRenderableWidget(upload = new Button(buttX - 48, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/upload.png"), 72, 24, FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
+        addRenderableWidget(upload = new Button(buttX - 48, buttY, 16, 16, 0, 32, 16, new FiguraIdentifier("textures/gui/button_backend.png"), 48, 48, FiguraText.of("gui.wardrobe.upload.tooltip"), button -> {
             Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
             try {
                 LocalAvatarLoader.loadAvatar(null, null);
@@ -87,7 +87,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         upload.setActive(false);
 
         // reload
-        addRenderableWidget(new Button(buttX - 12, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/reload.png"), 72, 24, FiguraText.of("gui.wardrobe.reload.tooltip"), button -> {
+        addRenderableWidget(new Button(buttX - 12, buttY, 16, 16, 0, 16, 16, new FiguraIdentifier("textures/gui/button_backend.png"), 48, 48, FiguraText.of("gui.wardrobe.reload.tooltip"), button -> {
             AvatarManager.clearAvatars(FiguraMod.getLocalPlayerUUID());
             try {
                 LocalAvatarLoader.loadAvatar(null, null);
@@ -98,7 +98,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }));
 
         // delete
-        addRenderableWidget(delete = new Button(buttX + 24, buttY, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/delete.png"), 72, 24, FiguraText.of("gui.wardrobe.delete.tooltip"), button ->
+        addRenderableWidget(delete = new Button(buttX + 24, buttY, 16, 16, 0, 0, 16, new FiguraIdentifier("textures/gui/button_backend.png"), 48, 48, FiguraText.of("gui.wardrobe.delete.tooltip"), button ->
                 NetworkStuff.deleteAvatar(null))
         );
         delete.setActive(false);
@@ -160,23 +160,23 @@ public class WardrobeScreen extends AbstractPanelScreen {
         // avatar settings
         Button avatarSettings;
         addRenderableWidget(avatarSettings = new Button(
-                this.width - rightSide, 28, 24, 24,
-                0, 0, 24,
-                new FiguraIdentifier("textures/gui/avatar_settings.png"),
-                72, 24,
+                this.width - rightSide, 28, 16, 16,
+                48, 0, 16,
+                new FiguraIdentifier("textures/gui/button_avatar_management.png"),
+                144, 48,
                 FiguraText.of("gui.avatar_settings.tooltip").append("\n").append(FiguraText.of("gui.not_available_yet").withStyle(ChatFormatting.RED)),
                 bx -> {}
         ));
         avatarSettings.setActive(false);
 
         // sounds
-        Button sounds = new Button(this.width - rightSide + 36, 28, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/sound.png"), 72, 24, FiguraText.of("gui.wardrobe.sound.tooltip"),
+        Button sounds = new Button(this.width - rightSide + 36, 28, 16, 16, 48, 32, 16, new FiguraIdentifier("textures/gui/button_avatar_management.png"), 144, 48, FiguraText.of("gui.wardrobe.sound.tooltip"),
                 button -> Minecraft.getInstance().setScreen(new SoundScreen(this))
         );
         addRenderableWidget(sounds);
 
         // keybinds
-        Button keybinds = new Button(this.width - rightSide + 72, 28, 24, 24, 0, 0, 24, new FiguraIdentifier("textures/gui/keybind.png"), 72, 24, FiguraText.of("gui.wardrobe.keybind.tooltip"),
+        Button keybinds = new Button(this.width - rightSide + 72, 28, 16, 16, 48, 16, 16, new FiguraIdentifier("textures/gui/button_avatar_management.png"), 144, 48, FiguraText.of("gui.wardrobe.keybind.tooltip"),
                 button -> Minecraft.getInstance().setScreen(new KeybindScreen(this))
         );
         addRenderableWidget(keybinds);
