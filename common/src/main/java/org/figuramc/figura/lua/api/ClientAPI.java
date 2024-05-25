@@ -367,7 +367,7 @@ public class ClientAPI {
     public static String getShaderPackName() {
         try {
             if (HAS_IRIS) {
-                return net.coderbot.iris.Iris.getCurrentPackName();
+                return net.irisshaders.iris.Iris.getCurrentPackName();
             } else if (OPTIFINE_LOADED.get()) {
                 Field shaderNameField = Class.forName("net.optifine.shaders.Shaders").getField("currentShaderName");
                 Class<?> shaderClass = shaderNameField.getType();

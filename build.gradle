@@ -1,7 +1,7 @@
 plugins {
 	id "architectury-plugin" version "3.4-SNAPSHOT"
-	id "dev.architectury.loom" version "1.2-SNAPSHOT" apply false
-	id "io.github.juuxel.loom-vineflower" version "1.+" apply false
+	id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
+//	id "io.github.juuxel.loom-vineflower" version "1.+" apply false
 }
 
 architectury {
@@ -10,7 +10,7 @@ architectury {
 
 subprojects {
 	apply plugin: "dev.architectury.loom"
-	apply plugin: "io.github.juuxel.loom-vineflower"
+//	apply plugin: "io.github.juuxel.loom-vineflower"
 
 	loom {
 		silentMojangMappingsLicense()
