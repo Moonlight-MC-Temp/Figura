@@ -176,7 +176,13 @@ public class FiguraTexture extends SimpleTexture {
 
 
     private FiguraVec4 parseColor(String method, Object r, Double g, Double b, Double a) {
-        return LuaUtils.parseVec4(method, r, g, b, a, 0, 0, 0, 1);
+        FiguraVec4 vec4 = LuaUtils.parseVec4(method, r, g, b, a, 0, 0, 0, 1);
+        return FiguraVec4.of(
+                clamp01(vec4.x),
+                clamp01(vec4.y),
+                clamp01(vec4.z),
+                clamp01(vec4.w)
+        );
     }
 
     @LuaWhitelist
@@ -352,6 +358,12 @@ public class FiguraTexture extends SimpleTexture {
                 );
                 if (!result.isnil() && result.isuserdata(FiguraVec4.class)) {
                     FiguraVec4 userdata = (FiguraVec4) result.checkuserdata(FiguraVec4.class);
+                    userdata = FiguraVec4.of(
+                            clamp01(userdata.x),
+                            clamp01(userdata.y),
+                            clamp01(userdata.z),
+                            clamp01(userdata.w)
+                    );
                     int newColor = ColorUtils.rgbaToIntABGR(userdata);
                     setActualPixel(actualX, actualY, newColor, false);
                 }
