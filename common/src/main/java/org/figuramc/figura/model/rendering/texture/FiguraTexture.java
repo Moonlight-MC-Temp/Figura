@@ -431,27 +431,30 @@ public class FiguraTexture extends SimpleTexture {
     private @Nullable Pair<Integer, Integer> mapCoordinates(int x, int y) throws LuaError {
         int width = getWidth(), height = getHeight();
         if (x >= 0 && x < width && y >= 0 && y < height) return Pair.of(x, y);
-        return switch (writeOverflowStrategy) {
-            case ERROR -> throw new LuaError(String.format(
-                    "(%d, %d) is out of bounds on %dx%d texture",
-                    x, y, width, height
-            ));
-            case DISCARD -> null;
-            case WRAP -> Pair.of(
-                    Math.floorMod(x, width),
-                    Math.floorMod(y, height)
-            );
-            case MIRROR -> {
-                // but first, we need to talk about parallel universes
+        switch (writeOverflowStrategy) {
+            case ERROR:
+                throw new LuaError(String.format(
+                        "(%d, %d) is out of bounds on %dx%d texture",
+                        x, y, width, height
+                ));
+            case DISCARD:
+                return null;
+            case WRAP:
+                return Pair.of(
+                        Math.floorMod(x, width),
+                        Math.floorMod(y, height)
+                );
+            case MIRROR:// but first, we need to talk about parallel universes
                 int puX = Math.floorDiv(x, width), puY = Math.floorDiv(y, height);
                 // if the original image is PU(0, 0), odd numbered PUs are flipped on one or both axes
                 boolean isXFlipped = Math.floorMod(puX, 2) == 1, isYFlipped = Math.floorMod(puY, 2) == 1;
                 int localX = Math.floorMod(x, width), localY = Math.floorMod(y, height);
                 if (isXFlipped) localX = (width - 1) - localX;
                 if (isYFlipped) localY = (height - 1) - localY;
-                yield Pair.of(localX, localY);
-            }
-        };
+                return Pair.of(localX, localY);
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 
     // Mathematical area operations
