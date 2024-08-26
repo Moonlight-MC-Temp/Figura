@@ -552,6 +552,28 @@ public class FiguraTexture extends SimpleTexture {
     public FiguraTexture subtract(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opSubtract);
     }
+    
+    @LuaWhitelist
+    public FiguraTexture invert(int x, int y, int w, int h, Boolean invertAlpha) {
+        boolean invertAlpha_real = (invertAlpha != null && invertAlpha);
+        backupImage();
+        for (int i = x; i < x + w; i++) {
+            for (int j = y; j < y + h; j++) {
+                Pair<Integer, Integer> actual = mapCoordinates(i, j);
+                if (actual == null) continue;
+                int realX = actual.getFirst(), realY = actual.getSecond();
+                FiguraVec4 current = getActualPixel(realX, realY);
+                FiguraVec4 inverted = FiguraVec4.of(
+                        1 - current.x,
+                        1 - current.y,
+                        1 - current.z,
+                        invertAlpha_real ? 1 - current.w : current.w
+                );
+                setActualPixel(realX, realY, ColorUtils.rgbaToIntABGR(inverted), false);
+            }
+        }
+        return this;
+    }
 
     @LuaWhitelist
     public FiguraTexture setOverflowMode(@LuaNotNil @NotNull String mode) {
