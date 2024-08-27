@@ -2,6 +2,7 @@ package org.figuramc.figura.math.matrix;
 
 import org.figuramc.figura.math.vector.FiguraVector;
 import org.figuramc.figura.math.vector.FlexibleVector;
+import org.jetbrains.annotations.Contract;
 
 /**
  * Not a Lua API, but used internally for things like image filtering.
@@ -58,20 +59,34 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     }
 
     @Override
+    @Contract("-> fail")
+    public double det() {
+        throw new IllegalStateException("det() not supported on FlexibleMatrix");
+    }
+
+    @Override
+    @Contract("-> fail")
     protected double calculateDeterminant() {
-        return 0;
+        throw new IllegalStateException("det() not supported on FlexibleMatrix");
     }
 
     @Override
     protected void resetIdentity() {
-
+        if (width == height) {
+            for (int xy = 0; xy < height; xy++) {
+                internal[xy] = new double[width];
+                internal[xy][xy] = 1;
+                internalTranspose[xy] = new double[height];
+                internalTranspose[xy][xy] = 1;
+            }
+        } else throw new IllegalStateException("cannot reset to identity non-square matrix");
     }
-    
+
     public void strictCopyFrom(FlexibleMatrix source) {
         assertSameSize(this, source);
         lenientCopyFrom(source);
     }
-    
+
     public <VectorT extends FiguraVector<VectorT, MatrixT>, MatrixT extends FiguraMatrix<MatrixT, VectorT>>
     void strictCopyFrom(MatrixT source) {
         assertSameSize(this, source);
@@ -123,7 +138,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
                         "inconsistent info: cols() says the width is %d, but unpack() says it's %d",
                         width, row.length
                 ));
-                internal[y] = row; 
+                internal[y] = row;
             }
             for (int x = 0; x < width; x++) {
                 double[] col = source.getColumn(x).unpack();
@@ -173,9 +188,11 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     }
 
     @Override
+    @Contract(value = "-> new")
     public FlexibleMatrix copy() {
         FlexibleMatrix newMat = new FlexibleMatrix(width, height);
-        newMat.lenientCopyFrom(this);
+        for (int y = 0; y < height; y++) newMat.internal[y] = internal[y].clone();
+        for (int x = 0; x < width; x++) newMat.internalTranspose[x] = internalTranspose[x].clone();
         return newMat;
     }
 
@@ -212,38 +229,112 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     }
 
     @Override
+    @Contract(value = "_ -> this")
     public FlexibleMatrix set(FlexibleMatrix o) {
         strictCopyFrom(o);
         return this;
     }
-
-    @Override
-    public FlexibleMatrix multiply(FlexibleMatrix o) {
-        return null;
+    
+    public void put(int y, int x, double value) {
+        if (y > height || y < 0) throw new IllegalArgumentException(String.format(
+                "y (%d) out of range [0, %d)",
+                y, height
+        ));
+        if (x > width || x < 0) throw new IllegalArgumentException(String.format(
+                "x (%d) out of range [0, %d)",
+                x, width
+        ));
+        internal[y][x] = value;
+        internalTranspose[x][y] = value;
+    }
+    
+    public double get(int y, int x) {
+        if (y > height || y < 0) throw new IllegalArgumentException(String.format(
+                "y (%d) out of range [0, %d)",
+                y, height
+        ));
+        if (x > width || x < 0) throw new IllegalArgumentException(String.format(
+                "x (%d) out of range [0, %d)",
+                x, width
+        ));
+        return internal[y][x];
     }
 
+    /**
+     * Watch out - makes a copy!
+     * @param right right side of multiplication
+     * @return result
+     */
     @Override
-    public FlexibleMatrix rightMultiply(FlexibleMatrix o) {
-        return null;
+    @Contract("_ -> new")
+    public FlexibleMatrix multiply(FlexibleMatrix right) {
+        if (width != right.height) throw new IllegalArgumentException(String.format(
+                "cannot multiply matrices: [%d]x%d times %dx[%d]: [bracketed numbers] need to match",
+                width, height, right.width, right.height
+        ));
+        FlexibleMatrix output = new FlexibleMatrix(right.width, height);
+        for (int rowY = 0; rowY < height; rowY ++) {
+            for (int colX = 0; colX < right.width; colX ++) {
+                output.put(rowY, colX, getRow(rowY).dot(right.getColumn(colX)));
+            }
+        }
+        return output;
     }
 
+    /**
+     * Watch out - makes a copy!
+     * @param left left side of multiplication
+     * @return result
+     */
     @Override
+    @Contract("_ -> new")
+    public FlexibleMatrix rightMultiply(FlexibleMatrix left) {
+        return left.multiply(this);
+    }
+
+    /**
+     * WATCH OUT! this makes a copy! and doesn't mutate!
+     * @return the new, transposed matrix
+     */
+    @Override
+    @Contract("-> new")
     public FlexibleMatrix transpose() {
-        return null;
+        @SuppressWarnings("SuspiciousNameCombination") // yes they're switched
+        FlexibleMatrix target = new FlexibleMatrix(height, width);
+        for (int y = 0; y < height; y++) target.internalTranspose[y] = internal[y].clone();
+        for (int x = 0; x < width; x++) target.internal[x] = internalTranspose[x].clone();
+        return target;
     }
 
     @Override
+    @Contract("-> fail")
     public FlexibleMatrix invert() {
-        return null;
+        throw new IllegalStateException("invert() not supported on FlexibleMatrix");
     }
 
     @Override
+    @Contract(value = "_ -> this")
     public FlexibleMatrix add(FlexibleMatrix o) {
-        return null;
+        assertSameSize(this, o);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                internal[y][x] += o.internal[y][x];
+                internalTranspose[y][x] += o.internalTranspose[y][x];
+            }
+        }
+        return this;
     }
 
     @Override
+    @Contract(value = "_ -> this")
     public FlexibleMatrix sub(FlexibleMatrix o) {
-        return null;
+        assertSameSize(this, o);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                internal[y][x] -= o.internal[y][x];
+                internalTranspose[y][x] -= o.internalTranspose[y][x];
+            }
+        }
+        return this;
     }
 }

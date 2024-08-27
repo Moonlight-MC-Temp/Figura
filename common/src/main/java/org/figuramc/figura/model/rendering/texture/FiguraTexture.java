@@ -170,7 +170,7 @@ public class FiguraTexture extends SimpleTexture {
     public ResourceLocation getLocation() {
         return this.location;
     }
-
+    
 
     // -- lua stuff -- // 
 
