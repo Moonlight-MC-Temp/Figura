@@ -133,7 +133,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         if (source.rows() == height && source.cols() == width) {
             for (int y = 0; y < height; y++) {
                 // this had BETTER clone it
-                double[] row = source.getRow(y).unpack();
+                double[] row = source.getRow(y + 1).unpack();
                 if (row.length != width) throw new IllegalArgumentException(String.format(
                         "inconsistent info: cols() says the width is %d, but unpack() says it's %d",
                         width, row.length
@@ -141,7 +141,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
                 internal[y] = row;
             }
             for (int x = 0; x < width; x++) {
-                double[] col = source.getColumn(x).unpack();
+                double[] col = source.getColumn(x + 1).unpack();
                 if (col.length != height) throw new IllegalArgumentException(String.format(
                         "inconsistent info: rows() says the height is %d, but unpack() says it's %d",
                         height, col.length
@@ -153,7 +153,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         if (source.rows() == height) {
             // copy columns into transpose table and then flip it
             for (int x = 0; x < Math.min(width, source.cols()); x++) {
-                double[] col = source.getColumn(x).unpack();
+                double[] col = source.getColumn(x + 1).unpack();
                 if (col.length != height) throw new IllegalArgumentException(String.format(
                         "inconsistent info: rows() says the height is %d, but unpack() says it's %d",
                         height, col.length
@@ -166,7 +166,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         if (source.cols() == width) {
             // same but with rows
             for (int y = 0; y < Math.min(height, source.rows()); y++) {
-                double[] row = source.getRow(y).unpack();
+                double[] row = source.getRow(y + 1).unpack();
                 if (row.length != width) throw new IllegalArgumentException(String.format(
                         "inconsistent info: cols() says the width is %d, but unpack() says it's %d",
                         width, row.length
@@ -178,7 +178,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         }
         // just iterate
         for (int y = 0; y < Math.min(height, source.rows()); y++) {
-            double[] row = source.getRow(y).unpack();
+            double[] row = source.getRow(y + 1).unpack();
             // don't risk an out-of-bounds index
             for (int x = 0; x < Math.min(width, row.length); x++) {
                 internal[y][x] = row[x];
@@ -210,12 +210,12 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
 
     @Override
     public FlexibleVector getColumn(int col) {
-        return FlexibleVector.of(internalTranspose[col]);
+        return FlexibleVector.of(internalTranspose[col - 1]);
     }
 
     @Override
     public FlexibleVector getRow(int row) {
-        return FlexibleVector.of(internal[row]);
+        return FlexibleVector.of(internal[row - 1]);
     }
 
     @Override
@@ -233,6 +233,28 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     public FlexibleMatrix set(FlexibleMatrix o) {
         strictCopyFrom(o);
         return this;
+    }
+    
+    public FlexibleMatrix set(double[][] items) {
+        return set(FlexibleMatrix.of(items));
+    }
+
+    /**
+     * Expects items[Y][X]; height is {@code items.length} and width is {@code items[0].length} (or 0 if empty)
+     * @param items values to create with
+     * @return new matrix
+     */
+    @Contract("_ -> new")
+    public static FlexibleMatrix of(double[][] items) {
+        int height = items.length;
+        if (height == 0) return new FlexibleMatrix(0, 0);
+        int width = items[0].length;
+        FlexibleMatrix target = new FlexibleMatrix(width, height);
+        for (int y = 0; y < height; y++) {
+            target.internal[y] = items[y].clone();
+        }
+        target.regenerateTranspose();
+        return target;
     }
     
     public void put(int y, int x, double value) {

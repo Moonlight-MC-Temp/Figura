@@ -15,13 +15,15 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
     public double lengthSquared() {
         return 0;
     }
-    
-    private static <T1 extends FiguraVector<T1, ?>, T2 extends FiguraVector<T2, ?>> void assertSizeEqual(T1 left, T2 right) {
+
+    private static <T1 extends FiguraVector<T1, ?>, T2 extends FiguraVector<T2, ?>> void assertSizeEqual(T1 left,
+                                                                                                         T2 right) {
         if (left.size() != right.size()) throw new IllegalArgumentException(String.format(
                 "both vectors need to be the same size, but one is %d and the other is %d",
                 left.size(), right.size()
         ));
     }
+
     private static void assertSizeEqual(FlexibleVector left, FlexibleVector right) {
         if (left.size != right.size) throw new IllegalArgumentException(String.format(
                 "both vectors need to be the same size, but one is %d and the other is %d",
@@ -33,6 +35,7 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
         assertSizeEqual(this, source);
         System.arraycopy(source.internal, 0, internal, 0, size);
     }
+
     public <T extends FiguraVector<T, ?>> void strictCopyFrom(T source) {
         assertSizeEqual(this, source);
         lenientCopyFrom(source);
@@ -52,7 +55,7 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
     public void lenientCopyFrom(FlexibleVector source) {
         System.arraycopy(source.internal, 0, internal, 0, Math.min(size, source.size));
     }
-    
+
     public <T extends FiguraVector<T, ?>> void lenientCopyFrom(T source) {
         double[] array = source.unpack();
         System.arraycopy(array, 0, internal, 0, Math.min(size, source.size()));
@@ -118,8 +121,15 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
 
     @Override
     public FlexibleVector transform(FlexibleMatrix mat) {
-        // TODO
-        throw new RuntimeException("TODO");
+        return mat.multiply(asColumnMatrix()).getColumn(1);
+    }
+    
+    public FlexibleMatrix asColumnMatrix() {
+        double[][] rows = new double[size][1];
+        for (int i = 0; i < size; i++) {
+            rows[i][1] = internal[i];
+        }
+        return FlexibleMatrix.of(rows);
     }
 
     @Override
@@ -200,7 +210,7 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
                 size, preview
         );
     }
-    
+
     public static FlexibleVector of(double... values) {
         FlexibleVector o = new FlexibleVector(values.length);
         System.arraycopy(o.internal, 0, values, 0, values.length);
