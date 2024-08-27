@@ -8,7 +8,13 @@ import org.figuramc.figura.math.vector.FlexibleVector;
  * (read: I needed a 5*5 matrix and decided to generalize)
  */
 public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector> {
+    /**
+     * index internal[ROW][COL] or internal[Y][X]
+     */
     private final double[][] internal;
+    /**
+     * index internalTranspose[COL][ROW] or internal[X][Y]
+     */
     private final double[][] internalTranspose;
     public final int width, height;
 
@@ -35,7 +41,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         }
     }
 
-    private static <T1 extends FiguraMatrix<T1, ?>, T2 extends FiguraMatrix<T2, ?>> void assertSizeSize(T1 left,
+    private static <T1 extends FiguraMatrix<T1, ?>, T2 extends FiguraMatrix<T2, ?>> void assertSameSize(T1 left,
                                                                                                         T2 right) {
         if (left.rows() != right.rows() || left.cols() != right.cols())
             throw new IllegalArgumentException(String.format(
@@ -59,6 +65,17 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     @Override
     protected void resetIdentity() {
 
+    }
+    
+    public void strictCopyFrom(FlexibleMatrix source) {
+        assertSameSize(this, source);
+        lenientCopyFrom(source);
+    }
+    
+    public <VectorT extends FiguraVector<VectorT, MatrixT>, MatrixT extends FiguraMatrix<MatrixT, VectorT>>
+    void strictCopyFrom(MatrixT source) {
+        assertSameSize(this, source);
+        lenientCopyFrom(source);
     }
 
     public void lenientCopyFrom(FlexibleMatrix source) {
@@ -120,7 +137,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         }
         if (source.rows() == height) {
             // copy columns into transpose table and then flip it
-            for (int x = 0; x < width; x++) {
+            for (int x = 0; x < Math.min(width, source.cols()); x++) {
                 double[] col = source.getColumn(x).unpack();
                 if (col.length != height) throw new IllegalArgumentException(String.format(
                         "inconsistent info: rows() says the height is %d, but unpack() says it's %d",
@@ -129,27 +146,59 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
                 internalTranspose[x] = col;
             }
             regenerateTransposeReverse();
+            return;
+        }
+        if (source.cols() == width) {
+            // same but with rows
+            for (int y = 0; y < Math.min(height, source.rows()); y++) {
+                double[] row = source.getRow(y).unpack();
+                if (row.length != width) throw new IllegalArgumentException(String.format(
+                        "inconsistent info: cols() says the width is %d, but unpack() says it's %d",
+                        width, row.length
+                ));
+                internal[y] = row;
+            }
+            regenerateTranspose();
+            return;
+        }
+        // just iterate
+        for (int y = 0; y < Math.min(height, source.rows()); y++) {
+            double[] row = source.getRow(y).unpack();
+            // don't risk an out-of-bounds index
+            for (int x = 0; x < Math.min(width, row.length); x++) {
+                internal[y][x] = row[x];
+                internalTranspose[x][y] = row[x];
+            }
         }
     }
 
     @Override
     public FlexibleMatrix copy() {
-        return null;
+        FlexibleMatrix newMat = new FlexibleMatrix(width, height);
+        newMat.lenientCopyFrom(this);
+        return newMat;
     }
 
     @Override
     public boolean equals(FlexibleMatrix other) {
-        return false;
+        if (other == null) return false;
+        if (other.width != width || other.height != height) return false;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (internal[y][x] != other.internal[y][x]) return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public FlexibleVector getColumn(int col) {
-        return null;
+        return FlexibleVector.of(internalTranspose[col]);
     }
 
     @Override
     public FlexibleVector getRow(int row) {
-        return null;
+        return FlexibleVector.of(internal[row]);
     }
 
     @Override
@@ -164,7 +213,8 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
 
     @Override
     public FlexibleMatrix set(FlexibleMatrix o) {
-        return null;
+        strictCopyFrom(o);
+        return this;
     }
 
     @Override

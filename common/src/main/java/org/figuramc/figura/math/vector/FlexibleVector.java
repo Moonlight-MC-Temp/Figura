@@ -168,7 +168,8 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
     @Override
     public boolean equals(Object other) {
         if (other == null) return false;
-        if (other instanceof FiguraVector<?, ?> v) {
+        if (other instanceof FiguraVector<?, ?>) {
+            FiguraVector<?, ?> v = (FiguraVector<?, ?>) other;
             double[] otherArr = v.unpack();
             if (otherArr.length != size) return false;
             for (int i = 0; i < size; i++) {
@@ -198,5 +199,11 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
                 "FlexibleVector<%d>{%s}",
                 size, preview
         );
+    }
+    
+    public static FlexibleVector of(double... values) {
+        FlexibleVector o = new FlexibleVector(values.length);
+        System.arraycopy(o.internal, 0, values, 0, values.length);
+        return o;
     }
 }
