@@ -24,7 +24,6 @@ import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.LuaUtils;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.LuaError;
@@ -170,7 +169,7 @@ public class FiguraTexture extends SimpleTexture {
     public ResourceLocation getLocation() {
         return this.location;
     }
-    
+
 
     // -- lua stuff -- // 
 
@@ -418,7 +417,8 @@ public class FiguraTexture extends SimpleTexture {
         ERROR("error"),
         DISCARD("ignore", "discard"),
         WRAP("wrap"),
-        MIRROR("mirror");
+        MIRROR("mirror"),
+        CLAMP("clamp");
 
         WriteOverflowStrategy(String... names) {
             for (String name : names)
@@ -444,7 +444,7 @@ public class FiguraTexture extends SimpleTexture {
                         Math.floorMod(x, width),
                         Math.floorMod(y, height)
                 );
-            case MIRROR:// but first, we need to talk about parallel universes
+            case MIRROR: // but first, we need to talk about parallel universes
                 int puX = Math.floorDiv(x, width), puY = Math.floorDiv(y, height);
                 // if the original image is PU(0, 0), odd numbered PUs are flipped on one or both axes
                 boolean isXFlipped = Math.floorMod(puX, 2) == 1, isYFlipped = Math.floorMod(puY, 2) == 1;
@@ -452,6 +452,11 @@ public class FiguraTexture extends SimpleTexture {
                 if (isXFlipped) localX = (width - 1) - localX;
                 if (isYFlipped) localY = (height - 1) - localY;
                 return Pair.of(localX, localY);
+            case CLAMP: // redirect out-of-bounds requests to the closest edge or corner
+                return Pair.of(
+                        Math.max(Math.min(x, width - 1), 0),
+                        Math.max(Math.min(y, height - 1), 0)
+                );
             default:
                 throw new IllegalArgumentException();
         }
@@ -555,7 +560,7 @@ public class FiguraTexture extends SimpleTexture {
     public FiguraTexture subtract(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opSubtract);
     }
-    
+
     @LuaWhitelist
     public FiguraTexture invert(int x, int y, int w, int h, Boolean invertAlpha) {
         boolean invertAlpha_real = (invertAlpha != null && invertAlpha);
@@ -595,7 +600,7 @@ public class FiguraTexture extends SimpleTexture {
         writeOverflowStrategy = name2OverflowStrategy.get(mode);
         return this;
     }
-    
+
     @LuaWhitelist
     public String getOverflowMode() {
         return overflowStrategy2Name.get(writeOverflowStrategy);
