@@ -26,6 +26,16 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         this.height = height;
     }
 
+    public static <VectorT extends FiguraVector<VectorT, MatrixT>, MatrixT extends FiguraMatrix<MatrixT, VectorT>> FlexibleMatrix from(
+            MatrixT mat) {
+        if (mat instanceof FlexibleMatrix) return (FlexibleMatrix) mat;
+        int width = mat.cols();
+        int height = mat.rows();
+        FlexibleMatrix newMat = new FlexibleMatrix(width, height);
+        newMat.lenientCopyFrom(mat);
+        return newMat;
+    }
+
     private void regenerateTranspose() {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -234,13 +244,14 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         strictCopyFrom(o);
         return this;
     }
-    
+
     public FlexibleMatrix set(double[][] items) {
         return set(FlexibleMatrix.of(items));
     }
 
     /**
      * Expects items[Y][X]; height is {@code items.length} and width is {@code items[0].length} (or 0 if empty)
+     *
      * @param items values to create with
      * @return new matrix
      */
@@ -256,7 +267,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         target.regenerateTranspose();
         return target;
     }
-    
+
     public void put(int y, int x, double value) {
         if (y > height || y < 0) throw new IllegalArgumentException(String.format(
                 "y (%d) out of range [0, %d)",
@@ -269,7 +280,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
         internal[y][x] = value;
         internalTranspose[x][y] = value;
     }
-    
+
     public double get(int y, int x) {
         if (y > height || y < 0) throw new IllegalArgumentException(String.format(
                 "y (%d) out of range [0, %d)",
@@ -284,6 +295,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
 
     /**
      * Watch out - makes a copy!
+     *
      * @param right right side of multiplication
      * @return result
      */
@@ -295,8 +307,8 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
                 width, height, right.width, right.height
         ));
         FlexibleMatrix output = new FlexibleMatrix(right.width, height);
-        for (int rowY = 0; rowY < height; rowY ++) {
-            for (int colX = 0; colX < right.width; colX ++) {
+        for (int rowY = 0; rowY < height; rowY++) {
+            for (int colX = 0; colX < right.width; colX++) {
                 output.put(rowY, colX, getRow(rowY).dot(right.getColumn(colX)));
             }
         }
@@ -305,6 +317,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
 
     /**
      * Watch out - makes a copy!
+     *
      * @param left left side of multiplication
      * @return result
      */
@@ -316,6 +329,7 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
 
     /**
      * WATCH OUT! this makes a copy! and doesn't mutate!
+     *
      * @return the new, transposed matrix
      */
     @Override

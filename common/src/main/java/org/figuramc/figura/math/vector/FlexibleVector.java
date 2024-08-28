@@ -10,6 +10,14 @@ public class FlexibleVector extends FiguraVector<FlexibleVector, FlexibleMatrix>
         internal = new double[size];
         this.size = size;
     }
+    
+    public static <VectorT extends FiguraVector<VectorT, ?>> FlexibleVector from(VectorT vector) {
+        if (vector instanceof FlexibleVector) return (FlexibleVector) vector;
+        int size = vector.size();
+        FlexibleVector v = new FlexibleVector(size);
+        v.lenientCopyFrom(vector);
+        return v;
+    }
 
     @Override
     public double lengthSquared() {
