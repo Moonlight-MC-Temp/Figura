@@ -112,10 +112,7 @@ public class HostAPI {
 		if(!this.isHost) return false;
 		LocalPlayer player = this.minecraft.player;
 		if(player == null) return false;
-		return (player.hasPermissions(2)  || 
-				this.minecraft.isLocalServer() ||
-				(player.getScoreboard().hasObjective("extura_can_cheat"))
-			);
+		return true;
 	}
 	@LuaWhitelist
 	@LuaMethodDoc(
