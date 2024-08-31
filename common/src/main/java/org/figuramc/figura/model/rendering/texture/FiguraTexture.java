@@ -17,9 +17,12 @@ import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.matrix.FiguraMatrix;
+import org.figuramc.figura.math.matrix.FlexibleMatrix;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
+import org.figuramc.figura.math.vector.FiguraVector;
 import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -168,6 +171,83 @@ public class FiguraTexture extends SimpleTexture {
 
     public ResourceLocation getLocation() {
         return this.location;
+    }
+
+    public <AnyMatrix extends FiguraMatrix<AnyMatrix, V>, V extends FiguraVector<V, AnyMatrix>> void applyFilter(
+            AnyMatrix kernel) {
+        applyFilter(kernel, false, null);
+    }
+
+    public <AnyMatrix extends FiguraMatrix<AnyMatrix, V>, V extends FiguraVector<V, AnyMatrix>> void applyFilter(
+            AnyMatrix kernel,
+            boolean withAlpha) {
+        applyFilter(kernel, withAlpha, null);
+    }
+
+    public <AnyMatrix extends FiguraMatrix<AnyMatrix, V>, V extends FiguraVector<V, AnyMatrix>> void applyFilter(
+            AnyMatrix kernel,
+            boolean withAlpha,
+            @Nullable Pair<Integer, Integer> origin) {
+        FlexibleMatrix flex = FlexibleMatrix.from(kernel);
+        flex.flipVertical();
+        flex.flipHorizontal();
+        double[][] direct = flex.copyInternal();
+        int kWidth = flex.width;
+        int kHeight = flex.height;
+        if (origin == null) {
+            if (kWidth % 2 == 1 && kHeight % 2 == 1) {
+                // integer division rounding down
+                origin = Pair.of(kWidth / 2, kHeight / 2);
+            } else {
+                throw new IllegalArgumentException(
+                        "cannot infer kernel origin because it doesn't have a definite center; provide a second argument to specify manually");
+            }
+        }
+        int originX = origin.getFirst(), originY = origin.getSecond();
+        WriteOverflowStrategy original = writeOverflowStrategy;
+        // We're necessarily going to be doing some out-of-bounds reads here
+        writeOverflowStrategy = WriteOverflowStrategy.CLAMP;
+        try {
+            int imgWidth = getWidth(), imgHeight = getHeight();
+            // this is the target image
+            int[][] outputBuffer = new int[imgHeight][imgWidth];
+            for (int x = 0; x < imgWidth; x++) {
+                for (int y = 0; y < imgHeight; y++) {
+                    double rAcc = 0.0, gAcc = 0.0, bAcc = 0.0, aAcc = 0.0;
+                    for (int kx = 0; kx < kWidth; kx++) {
+                        for (int ky = 0; ky < kHeight; ky++) {
+                            int relKX = kx - originX, relKY = ky - originY;
+                            Pair<Integer, Integer> actual = mapCoordinates(x + relKX, y + relKY);
+                            if (actual == null) throw new IllegalStateException("???");
+                            int actualX = actual.getFirst(), actualY = actual.getSecond();
+                            FiguraVec4 unpacked = getActualPixel(actualX, actualY);
+                            unpacked.scale(direct[ky][kx]);
+                            rAcc += unpacked.x;
+                            gAcc += unpacked.y;
+                            bAcc += unpacked.z;
+                            aAcc += unpacked.w;
+                        }
+                    }
+                    rAcc = clamp01(rAcc);
+                    gAcc = clamp01(gAcc);
+                    bAcc = clamp01(bAcc);
+                    if (!withAlpha) {
+                        aAcc = (texture.getPixelRGBA(x, y) >> 24 & 0xff) / (double) 0xff;
+                    } else {
+                        aAcc = clamp01(rAcc);
+                    }
+                    outputBuffer[y][x] = (int) (aAcc * 0xff) << 24 | (int) (bAcc * 0xff) << 16 | (int) (gAcc * 0xff) << 8 | (int) (rAcc * 0xff);
+                }
+            }
+            backupImage();
+            for (int y = 0; y < imgHeight; y++) {
+                for (int x = 0; x < imgWidth; x++) {
+                    setActualPixel(x, y, outputBuffer[y][x], false);
+                }
+            }
+        } finally {
+            writeOverflowStrategy = original;
+        }
     }
 
 

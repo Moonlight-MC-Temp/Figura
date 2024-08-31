@@ -19,6 +19,12 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
     private final double[][] internalTranspose;
     public final int width, height;
 
+    public double[][] copyInternal() {
+        double[][] clone = new double[height][width];
+        for (int y = 0; y < height; y++) clone[y] = internal[y].clone();
+        return clone;
+    }
+    
     public FlexibleMatrix(int width, int height) {
         internal = new double[height][width];
         internalTranspose = new double[width][height];
@@ -291,6 +297,27 @@ public class FlexibleMatrix extends FiguraMatrix<FlexibleMatrix, FlexibleVector>
                 x, width
         ));
         return internal[y][x];
+    }
+
+    /**
+     * Flips the matrix vertically.
+     */
+    public void flipVertical() {
+        double[][] backup = internal.clone(); // retains refs
+        for (int ySrc = height - 1, yDst = 0; ySrc >= 0; ySrc--, yDst++) {
+            internal[yDst] = backup[ySrc];
+        }
+        regenerateTranspose();
+    }
+    /**
+     * Flips the matrix horizontally.
+     */
+    public void flipHorizontal() {
+        double[][] backup = internalTranspose.clone();
+        for (int xSrc = width - 1, xDst = 0; xSrc >= 0; xSrc--, xDst++) {
+            internalTranspose[xDst] = backup[xSrc];
+        }
+        regenerateTransposeReverse();
     }
 
     /**
