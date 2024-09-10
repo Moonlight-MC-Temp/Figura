@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
+import kroppeb.stareval.function.Type;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.SimpleTexture;
 import net.minecraft.resources.ResourceLocation;
@@ -350,7 +351,47 @@ public class FiguraTexture extends SimpleTexture {
         return setPixel(x, y, r, g, b, a);
     }
 
-    @SuppressWarnings("resource")
+    /**
+     * Performs "linear" resizing, also called "no filter" or "nearest". Returns a new texture.
+     * For imperfect downscaling (i.e. segments not on pixel edges) may not produce equivalent results to
+     * e.g. whatever image processing program you use due to weighting 'partial' pixels equivalent to 'full' pixels
+     * when downscaling
+     */
+    @LuaWhitelist
+    public FiguraTexture resize(String outputName, int targetWidth, int targetHeight) {
+        // float imprecision strikes again (+/- to prevent rounding to the next number when you're approximately equal)
+        final double EPSILON = 1e-6;
+
+        NativeImage internal = new NativeImage(targetWidth, targetHeight, true);
+        FiguraTexture result = owner.registerTexture(outputName, internal, false);
+        int srcWidth = getWidth(), srcHeight = getHeight();
+        for (int outputX = 0; outputX < targetWidth; outputX++) {
+            for (int outputY = 0; outputY < targetHeight; outputY++) {
+                // map the output pixels onto the input pixels
+                int inputX_low = (int) Math.floor((double) outputX / targetWidth * srcWidth + EPSILON);
+                int inputX_high = (int) Math.ceil((double) (outputX + 1) / targetWidth * srcWidth - EPSILON);
+                int inputY_low = (int) Math.floor((double) outputY / targetHeight * srcHeight + EPSILON);
+                int inputY_high = (int) Math.ceil((double) (outputY + 1) / targetHeight * srcHeight - EPSILON);
+
+                // compute average color on corresponding source pixels
+                int count = 0;
+                double r = 0, g = 0, b = 0, a = 0;
+                for (int inputX = inputX_low; inputX < inputX_high; inputX++) {
+                    for (int inputY = inputY_low; inputY < inputY_high; inputY++) {
+                        FiguraVec4 color = getActualPixel(inputX, inputY);
+                        r += color.x; g += color.y; b += color.z; a += color.w;
+                        count += 1;
+                    }
+                }
+                r /= count; g /= count; b /= count; a /= count;
+                result.setActualPixel(outputX, outputY, ColorUtils.rgbaToIntABGR(FiguraVec4.of(r, g, b, a)));
+            }
+        }
+        result.backupImage();
+        result.update();
+        return result;
+    }
+
     @LuaWhitelist
     @LuaMethodDoc(
             overloads = {
