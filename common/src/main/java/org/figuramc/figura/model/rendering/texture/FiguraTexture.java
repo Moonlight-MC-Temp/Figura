@@ -158,10 +158,12 @@ public class FiguraTexture extends SimpleTexture {
         return image;
     }
 
+    @LuaWhitelist
     public int getWidth() {
         return texture.getWidth();
     }
 
+    @LuaWhitelist
     public int getHeight() {
         return texture.getHeight();
     }
