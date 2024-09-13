@@ -26,9 +26,7 @@ import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.LuaUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaFunction;
-import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.*;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
@@ -300,12 +298,18 @@ public class FiguraTexture extends SimpleTexture {
                 for (int inputX = inputX_low; inputX < inputX_high; inputX++) {
                     for (int inputY = inputY_low; inputY < inputY_high; inputY++) {
                         FiguraVec4 color = getActualPixel(inputX, inputY);
-                        r += color.x; g += color.y; b += color.z; a += color.w;
+                        r += color.x;
+                        g += color.y;
+                        b += color.z;
+                        a += color.w;
                         count += 1;
                     }
                 }
-                r /= count; g /= count; b /= count; a /= count;
-                result.setActualPixel(outputX, outputY, ColorUtils.rgbaToIntABGR(FiguraVec4.of(r, g, b, a)));
+                r /= count;
+                g /= count;
+                b /= count;
+                a /= count;
+                result.setActualPixel(outputX, outputY, ColorUtils.rgbaToIntABGR(FiguraVec4.of(r, g, b, a)), false);
             }
         }
         result.backupImage();
@@ -347,6 +351,192 @@ public class FiguraTexture extends SimpleTexture {
         } catch (Exception e) {
             throw new LuaError(e.getMessage());
         }
+    }
+
+    @SuppressWarnings("ClassCanBeRecord")
+    public static class BlitOptions {
+        public static final HashMap<String, Mode> NAMES = new HashMap<>();
+
+        public enum Mode {
+            SOURCE("source"),
+            NORMAL("normal"),
+            OUT("out"),
+            IN("in"),
+            ATOP("atop"),
+            XOR("xor");
+
+            Mode(String name) {
+                NAMES.put(name, this);
+            }
+        }
+
+        public final FiguraTexture source;
+        public final int x;
+        public final int y;
+        public final int sourceX;
+        public final int sourceY;
+        public final int width;
+        public final int height;
+        public final Mode mode;
+
+        public BlitOptions(FiguraTexture source, int x, int y, int sourceX, int sourceY, int width, int height,
+                           Mode mode) {
+            this.source = source;
+            this.x = x;
+            this.y = y;
+            this.sourceX = sourceX;
+            this.sourceY = sourceY;
+            this.width = width;
+            this.height = height;
+            this.mode = mode;
+        }
+
+        public static class Builder {
+            private FiguraTexture source = null;
+            private int x = 0;
+            private int y = 0;
+            private int sourceX = 0;
+            private int sourceY = 0;
+            private boolean isWidthConfigured = false;
+            private int width;
+            private boolean isHeightConfigured = false;
+            private int height;
+            private Mode mode = Mode.NORMAL;
+
+            public Builder() {
+            }
+
+            public void setProperty(String property, LuaValue value) {
+                switch (property) {
+                    case "source": {
+                        FiguraTexture texture = (FiguraTexture) value.checkuserdata(FiguraTexture.class);
+                        if (!isWidthConfigured) width = texture.getWidth();
+                        if (!isHeightConfigured) height = texture.getHeight();
+                        source = texture;
+                        break;
+                    }
+                    case "x":
+                        x = value.checkint();
+                        break;
+                    case "y":
+                        y = value.checkint();
+                        break;
+                    case "sourceX":
+                        sourceX = value.checkint();
+                        break;
+                    case "sourceY":
+                        sourceY = value.checkint();
+                        break;
+                    case "width": {
+                        width = value.checkint();
+                        isWidthConfigured = true;
+                        break;
+                    }
+                    case "height": {
+                        height = value.checkint();
+                        isHeightConfigured = true;
+                        break;
+                    }
+                    case "mode": {
+                        Mode m = NAMES.get(value.checkjstring());
+                        if (m == null) throw new LuaError("Unknown blitting mode '" + value.checkjstring() + "'");
+                        mode = m;
+                    }
+                }
+            }
+
+            public BlitOptions build() {
+                if (source == null) throw new LuaError("No source specified for blit operation");
+                return new BlitOptions(
+                        source, x, y, sourceX, sourceY, width, height, mode
+                );
+            }
+        }
+
+        public static BlitOptions fromTable(LuaTable table) {
+            Builder b = new Builder();
+            LuaValue k = LuaValue.NIL;
+            while (true) {
+                Varargs var = table.next(k);
+                if ((k = var.arg1()).isnil()) break;
+                if (k.isstring()) {
+                    LuaValue val = table.get(k);
+                    b.setProperty(k.checkjstring(), val);
+                }
+            }
+            return b.build();
+        }
+    }
+
+    public FiguraTexture blit(BlitOptions options) {
+        FiguraTexture source = options.source;
+        backupImage();
+        for (int x = 0; x < options.width; x++) {
+            for (int y = 0; y < options.height; y++) {
+                int tX = options.x + x, tY = options.y + y;
+                int sX = options.sourceX + x, sY = options.sourceY + y;
+                Pair<Integer, Integer> real = mapCoordinates(tX, tY);
+                if (real == null) continue;
+                FiguraVec4 sColorTrue = source.getPixel(sX, sY);
+                double sAlpha = sColorTrue.w;
+                FiguraVec4 tColorTrue = getActualPixel(real.getFirst(), real.getSecond());
+                double tAlpha = tColorTrue.w;
+                // premultiply...
+                sColorTrue.scale(sAlpha);
+                sColorTrue.w = sAlpha;
+                tColorTrue.scale(tAlpha);
+                tColorTrue.w = tAlpha;
+                double sFactor;
+                double tFactor;
+                // Choose which operator to use
+                // Special thanks: https://ciechanow.ski/alpha-compositing/
+                switch (options.mode) {
+                    case SOURCE:
+                        sFactor = 1.0;
+                        tFactor = 0.0;
+                        break;
+                    case NORMAL:
+                        sFactor = 1.0;
+                        tFactor = 1 - sAlpha;
+                        break;
+                    case OUT:
+                        sFactor = 1.0 - tAlpha;
+                        tFactor = 0.0;
+                        break;
+                    case XOR:
+                        sFactor = 1.0 - tAlpha;
+                        tFactor = 1.0 - sAlpha;
+                        break;
+                    case IN:
+                        sFactor = tAlpha;
+                        tFactor = 0.0;
+                        break;
+                    case ATOP:
+                        sFactor = tAlpha;
+                        tFactor = 1.0 - sAlpha;
+                        break;
+                    default:
+                        throw new IllegalArgumentException();
+                }
+                sColorTrue.scale(sFactor);
+                tColorTrue.scale(tFactor);
+                sColorTrue.add(tColorTrue);
+                setActualPixel(real.getFirst(), real.getSecond(), ColorUtils.rgbaToIntABGR(
+                        FiguraVec4.of(
+                                sColorTrue.x / sColorTrue.w,
+                                sColorTrue.y / sColorTrue.w,
+                                sColorTrue.z / sColorTrue.w,
+                                sColorTrue.w
+                        )
+                ));
+            }
+        }
+        return this;
+    }
+
+    @LuaWhitelist
+    public FiguraTexture blit(LuaTable options) {
+        return blit(BlitOptions.fromTable(options));
     }
 
     @LuaWhitelist
