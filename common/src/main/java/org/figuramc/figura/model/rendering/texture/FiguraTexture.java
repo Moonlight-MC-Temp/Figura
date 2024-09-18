@@ -489,10 +489,6 @@ public class FiguraTexture extends SimpleTexture {
         }
     }
 
-    public static FiguraVec4 composeColorsNormal(FiguraVec4 target, FiguraVec4 source) {
-        return composeColors(target, source, BlendMode.NORMAL, false);
-    }
-
     public static FiguraVec4 composeColors(FiguraVec4 target, FiguraVec4 source, BlendMode mode, boolean makeCopy) {
         if (makeCopy) {
             target = target.copy();
