@@ -24,6 +24,7 @@ import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.LuaUtils;
+import org.figuramc.figura.utils.MathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -353,22 +355,31 @@ public class FiguraTexture extends SimpleTexture {
         }
     }
 
-    @SuppressWarnings("ClassCanBeRecord")
-    public static class BlitOptions {
-        public static final HashMap<String, Mode> NAMES = new HashMap<>();
+    public enum BlendMode {
+        SOURCE("source"),
+        NORMAL("normal"),
+        OUT("out"),
+        IN("in"),
+        ATOP("atop"),
+        XOR("xor");
 
-        public enum Mode {
-            SOURCE("source"),
-            NORMAL("normal"),
-            OUT("out"),
-            IN("in"),
-            ATOP("atop"),
-            XOR("xor");
+        public final String name;
+        public static final HashMap<String, BlendMode> NAMES = new HashMap<>();
 
-            Mode(String name) {
-                NAMES.put(name, this);
+        BlendMode(String name) {
+            this.name = name;
+        }
+
+        static {
+            EnumSet<BlendMode> allMembers = EnumSet.allOf(BlendMode.class);
+            for (BlendMode mode : allMembers) {
+                NAMES.put(mode.name, mode);
             }
         }
+    }
+
+    @SuppressWarnings("ClassCanBeRecord")
+    public static class BlitOptions {
 
         public final FiguraTexture source;
         public final int x;
@@ -377,10 +388,10 @@ public class FiguraTexture extends SimpleTexture {
         public final int sourceY;
         public final int width;
         public final int height;
-        public final Mode mode;
+        public final BlendMode mode;
 
         public BlitOptions(FiguraTexture source, int x, int y, int sourceX, int sourceY, int width, int height,
-                           Mode mode) {
+                           BlendMode mode) {
             this.source = source;
             this.x = x;
             this.y = y;
@@ -401,18 +412,28 @@ public class FiguraTexture extends SimpleTexture {
             private int width;
             private boolean isHeightConfigured = false;
             private int height;
-            private Mode mode = Mode.NORMAL;
+            private BlendMode mode = BlendMode.NORMAL;
 
             public Builder() {
+            }
+
+            public Builder from(FiguraTexture source) {
+                if (!isWidthConfigured) width = source.getWidth();
+                if (!isHeightConfigured) height = source.getHeight();
+                this.source = source;
+                return this;
+            }
+
+            public Builder mode(BlendMode mode) {
+                this.mode = mode;
+                return this;
             }
 
             public void setProperty(String property, LuaValue value) {
                 switch (property) {
                     case "source": {
                         FiguraTexture texture = (FiguraTexture) value.checkuserdata(FiguraTexture.class);
-                        if (!isWidthConfigured) width = texture.getWidth();
-                        if (!isHeightConfigured) height = texture.getHeight();
-                        source = texture;
+                        from(texture);
                         break;
                     }
                     case "x":
@@ -438,7 +459,7 @@ public class FiguraTexture extends SimpleTexture {
                         break;
                     }
                     case "mode": {
-                        Mode m = NAMES.get(value.checkjstring());
+                        BlendMode m = BlendMode.NAMES.get(value.checkjstring());
                         if (m == null) throw new LuaError("Unknown blitting mode '" + value.checkjstring() + "'");
                         mode = m;
                     }
@@ -468,6 +489,71 @@ public class FiguraTexture extends SimpleTexture {
         }
     }
 
+    public static FiguraVec4 composeColorsNormal(FiguraVec4 target, FiguraVec4 source) {
+        return composeColors(target, source, BlendMode.NORMAL, false);
+    }
+
+    public static FiguraVec4 composeColors(FiguraVec4 target, FiguraVec4 source, BlendMode mode, boolean makeCopy) {
+        if (makeCopy) {
+            target = target.copy();
+            source = source.copy();
+        }
+        // Premultiply...
+        double targetW = target.w;
+        double sourceW = source.w;
+
+        target.scale(targetW);
+        target.w = targetW;
+
+        source.scale(sourceW);
+        source.w = sourceW;
+        double sFactor;
+        double tFactor;
+
+        // Choose which operator to use
+        // Special thanks: https://ciechanow.ski/alpha-compositing/
+        switch (mode) {
+            case SOURCE:
+                sFactor = 1.0;
+                tFactor = 0.0;
+                break;
+            case NORMAL:
+                sFactor = 1.0;
+                tFactor = 1 - sourceW;
+                break;
+            case OUT:
+                sFactor = 1.0 - targetW;
+                tFactor = 0.0;
+                break;
+            case XOR:
+                sFactor = 1.0 - targetW;
+                tFactor = 1.0 - sourceW;
+                break;
+            case IN:
+                sFactor = targetW;
+                tFactor = 0.0;
+                break;
+            case ATOP:
+                sFactor = targetW;
+                tFactor = 1.0 - sourceW;
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+
+        source.scale(sFactor);
+        target.scale(tFactor);
+        target.add(source);
+
+        // ...un-premultiply.
+        return FiguraVec4.of(
+                target.x / target.w,
+                target.y / target.w,
+                target.z / target.w,
+                target.w
+        );
+    }
+
     public FiguraTexture blit(BlitOptions options) {
         FiguraTexture source = options.source;
         backupImage();
@@ -478,56 +564,9 @@ public class FiguraTexture extends SimpleTexture {
                 Pair<Integer, Integer> real = mapCoordinates(tX, tY);
                 if (real == null) continue;
                 FiguraVec4 sColorTrue = source.getPixel(sX, sY);
-                double sAlpha = sColorTrue.w;
                 FiguraVec4 tColorTrue = getActualPixel(real.getFirst(), real.getSecond());
-                double tAlpha = tColorTrue.w;
-                // premultiply...
-                sColorTrue.scale(sAlpha);
-                sColorTrue.w = sAlpha;
-                tColorTrue.scale(tAlpha);
-                tColorTrue.w = tAlpha;
-                double sFactor;
-                double tFactor;
-                // Choose which operator to use
-                // Special thanks: https://ciechanow.ski/alpha-compositing/
-                switch (options.mode) {
-                    case SOURCE:
-                        sFactor = 1.0;
-                        tFactor = 0.0;
-                        break;
-                    case NORMAL:
-                        sFactor = 1.0;
-                        tFactor = 1 - sAlpha;
-                        break;
-                    case OUT:
-                        sFactor = 1.0 - tAlpha;
-                        tFactor = 0.0;
-                        break;
-                    case XOR:
-                        sFactor = 1.0 - tAlpha;
-                        tFactor = 1.0 - sAlpha;
-                        break;
-                    case IN:
-                        sFactor = tAlpha;
-                        tFactor = 0.0;
-                        break;
-                    case ATOP:
-                        sFactor = tAlpha;
-                        tFactor = 1.0 - sAlpha;
-                        break;
-                    default:
-                        throw new IllegalArgumentException();
-                }
-                sColorTrue.scale(sFactor);
-                tColorTrue.scale(tFactor);
-                sColorTrue.add(tColorTrue);
                 setActualPixel(real.getFirst(), real.getSecond(), ColorUtils.rgbaToIntABGR(
-                        FiguraVec4.of(
-                                sColorTrue.x / sColorTrue.w,
-                                sColorTrue.y / sColorTrue.w,
-                                sColorTrue.z / sColorTrue.w,
-                                sColorTrue.w
-                        )
+                        composeColors(tColorTrue, sColorTrue, options.mode, false)
                 ));
             }
         }
@@ -537,6 +576,346 @@ public class FiguraTexture extends SimpleTexture {
     @LuaWhitelist
     public FiguraTexture blit(LuaTable options) {
         return blit(BlitOptions.fromTable(options));
+    }
+
+    // credit: Wikipedia contributors, http://members.chello.at/easyfilter/bresenham.html
+    private void lineReal(int x0, int y0, int x1, int y1, FiguraVec4 color, BlendMode mode) {
+        int colorInt = ColorUtils.rgbaToIntABGR(color);
+        boolean compositionRequired = color.w < 1.0;
+        int dx = Math.abs(x1 - x0);
+        int sx = x0 < x1 ? 1 : -1;
+        int dy = -Math.abs(y1 - y0);
+        int sy = y0 < y1 ? 1 : -1;
+        int error = dx + dy;
+        while (true) {
+            Pair<Integer, Integer> actual = mapCoordinates(x0, y0);
+            if (actual != null) {
+                int thisColor = colorInt;
+                if (compositionRequired) {
+                    thisColor = ColorUtils.rgbaToIntABGR(composeColors(
+                            getActualPixel(actual.getFirst(), actual.getSecond()),
+                            color,
+                            mode,
+                            false
+                    ));
+                }
+                setActualPixel(actual.getFirst(), actual.getSecond(), thisColor, false);
+            }
+            if (x0 == x1 && y0 == y1) break;
+            int error2 = error * 2;
+            if (error2 >= dy) {
+                error = error + dy;
+                x0 = x0 + sx;
+            }
+            if (error2 <= dx) {
+                error = error + dx;
+                y0 = y0 + sy;
+            }
+        }
+    }
+
+    private void setPixelMix(int x, int y, FiguraVec4 color, BlendMode mode) {
+        Pair<Integer, Integer> actual = mapCoordinates(x, y);
+        if (actual == null) return;
+        FiguraVec4 baseColor = getActualPixel(actual.getFirst(), actual.getSecond());
+        int colorId = ColorUtils.rgbaToIntABGR(composeColors(
+                baseColor,
+                color,
+                mode,
+                false
+        ));
+        setActualPixel(actual.getFirst(), actual.getSecond(), colorId, false);
+    }
+
+    private static double fractional(double x) {
+        return x - Math.floor(x);
+    }
+
+    private static double rFractional(double x) {
+        return 1.0 - fractional(x);
+    }
+
+    private static FiguraVec4 opacity(FiguraVec4 base, double factor) {
+        FiguraVec4 clone = base.copy();
+        clone.w *= factor;
+        return clone;
+    }
+
+    // https://en.wikipedia.org/wiki/Xiaolin_Wu%27s_line_algorithm, Wikipedia contributors
+    private void aaLineReal(int x0, int y0, int x1, int y1, FiguraVec4 color, BlendMode mode) {
+        boolean isSteep = Math.abs(y1 - y0) > Math.abs(x1 - x0);
+        // Shuffle variables
+        if (isSteep) {
+            int swap = x0;
+            //noinspection SuspiciousNameCombination
+            x0 = y0;
+            y0 = swap;
+            swap = x1;
+            //noinspection SuspiciousNameCombination
+            x1 = y1;
+            y1 = swap;
+        }
+        if (x0 > x1) {
+            int swap = x0;
+            x0 = x1;
+            x1 = swap;
+            swap = y0;
+            y0 = y1;
+            y1 = swap;
+        }
+
+        int dx = x1 - x0;
+        int dy = y1 - y0;
+        double gradient;
+
+        if (dx == 0) {
+            gradient = 1.0;
+        } else {
+            gradient = (double) dy / dx;
+        }
+
+        // First endpoint
+        double xend = x0;
+        double yend = y0 + gradient * (xend - x0);
+        double xgap = rFractional(x0 + 0.5);
+        int xpxl1 = (int) Math.round(xend);
+        int ypxl1 = (int) Math.floor(yend);
+        if (isSteep) {
+            setPixelMix(ypxl1, xpxl1, opacity(color, rFractional(yend) * xgap), mode);
+            setPixelMix(ypxl1 + 1, xpxl1, opacity(color, fractional(yend) * xgap), mode);
+        } else {
+            setPixelMix(xpxl1, ypxl1, opacity(color, rFractional(yend) * xgap), mode);
+            setPixelMix(xpxl1, ypxl1 + 1, opacity(color, fractional(yend) * xgap), mode);
+        }
+
+        // First Y intersection
+        double intery = yend + gradient;
+
+        // Second endpoint
+        xend = x1;
+        yend = y1 + gradient * (xend - x1);
+        xgap = fractional(x1 + 0.5);
+        int xpxl2 = (int) Math.round(xend);
+        int ypxl2 = (int) Math.floor(yend);
+        if (isSteep) {
+            setPixelMix(ypxl2, xpxl2, opacity(color, rFractional(yend) * xgap), mode);
+            setPixelMix(ypxl2 + 1, xpxl2, opacity(color, fractional(yend) * xgap), mode);
+        } else {
+            setPixelMix(xpxl2, ypxl2, opacity(color, rFractional(yend) * xgap), mode);
+            setPixelMix(xpxl2, ypxl2, opacity(color, rFractional(yend) * xgap), mode);
+        }
+
+        if (isSteep) {
+            for (int x = xpxl1 + 1; x < xpxl2; x++) {
+                //noinspection SuspiciousNameCombination
+                setPixelMix((int) Math.floor(intery), x, opacity(color, rFractional(intery)), mode);
+                //noinspection SuspiciousNameCombination
+                setPixelMix((int) Math.floor(intery) + 1, x, opacity(color, fractional(intery)), mode);
+                intery += gradient;
+            }
+        } else {
+            for (int x = xpxl1 + 1; x < xpxl2; x++) {
+                setPixelMix(x, (int) Math.floor(intery), opacity(color, rFractional(intery)), mode);
+                setPixelMix(x, (int) Math.floor(intery) + 1, opacity(color, fractional(intery)), mode);
+                intery += gradient;
+            }
+        }
+    }
+
+    private static class LineArgs {
+        int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+        FiguraVec4 color = null;
+        boolean withAA = false;
+        BlendMode mode = BlendMode.NORMAL;
+
+        void set(int index, Object value) {
+            int n = (value instanceof Integer) ? (Integer) value : -1;
+            boolean b = (value instanceof Boolean) ? (Boolean) value : false;
+            FiguraVec4 v4 = (value instanceof FiguraVec4) ? (FiguraVec4) value : null;
+            BlendMode bm;
+            if (value instanceof BlendMode) bm = (BlendMode) value;
+            else if (value instanceof String) {
+                bm = BlendMode.NAMES.get((String) value);
+            } else bm = null;
+            switch (index) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                    if (!(value instanceof Integer)) throw new LuaError("wrong type assigned to slot " + index);
+                    break;
+                case 4:
+                    if (v4 == null) throw new LuaError("wrong type assigned to slot " + index);
+                    break;
+                case 5:
+                    if (!(value instanceof Boolean)) throw new LuaError("wrong type assigned to slot " + index);
+                    break;
+                case 6:
+                    if (bm == null) throw new LuaError("wrong type or invalid BlendMode string for slot " + index);
+                    break;
+            }
+            switch (index) {
+                case 0:
+                    x0 = n;
+                    break;
+                case 1:
+                    y0 = n;
+                    break;
+                case 2:
+                    x1 = n;
+                    break;
+                case 3:
+                    y1 = n;
+                    break;
+                case 4:
+                    color = v4;
+                    break;
+                case 5:
+                    withAA = b;
+                    break;
+                case 6:
+                    mode = bm;
+                    break;
+                default:
+                    throw new LuaError("attempt to assign argument slot " + index);
+            }
+        }
+    }
+
+    @LuaWhitelist
+    public void line(
+                            // Max          Min (all)       Min (w/defaults)
+            Object arg1,    // x0           x0,y0           x0,y0
+            Object arg2,    // y0           x1,y1           x1,y1
+            Object arg3,    // x1           color (vec4)    color (vec4)
+            Object arg4,    // y1           AA?             [null]...
+            Object arg5,    // color.r      BlendMode
+            Object arg6,    // color.g      [null]...
+            Object arg7,    // color.b
+            Object arg8,    // color.a
+            Object arg9,    // AA?
+            Object arg10    // BlendMode
+    ) {
+        LineArgs options = new LineArgs();
+        Object[] arguments = {arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10};
+        int readHead = 0;
+        int nextParam = 0;
+        while (readHead < arguments.length) {
+            Object next = arguments[readHead];
+            switch (nextParam) {
+                case 0:
+                case 2: {
+                    if (next instanceof FiguraVec2) {
+                        FiguraVec2 v2 = (FiguraVec2) next;
+                        options.set(nextParam, (int) v2.x);
+                        options.set(nextParam + 1, (int) v2.y);
+                        nextParam += 2;
+                    } else if (next instanceof Number) {
+                        options.set(nextParam, ((Number) next).intValue());
+                        nextParam += 1;
+                    } else {
+                        throw new LuaError(String.format(
+                                "bad type for argument #%d, expected Vector2 or integer",
+                                readHead + 1
+                        ));
+                    }
+                    break;
+                }
+                case 1:
+                case 3: {
+                    if (next instanceof FiguraVec2) {
+                        throw new LuaError(String.format(
+                                "bad type for argument #%d (a Vector2 doesn't make sense here; are you missing the second integer of a coordinate pair?)",
+                                readHead + 1
+                        ));
+                    } else if (next instanceof Number) {
+                        options.set(nextParam, ((Number) next).intValue());
+                        nextParam += 1;
+                    } else {
+                        throw new LuaError(String.format("bad type for argument #%d, expected integer", readHead + 1));
+                    }
+                    break;
+                }
+                case 4: {
+                    if (next instanceof FiguraVec4) {
+                        options.set(nextParam, next);
+                        nextParam += 1;
+                    } else if (next instanceof Number) {
+                        double[] colorData = {0.0, 0.0, 0.0, 1.0};
+                        readHead--;
+                        // read AT LEAST 3, UP TO 4 Numbers
+                        for (int i = 0; i < 4; i++) { // i = 0, 1, 2, 3
+                            readHead++;
+                            if (readHead >= arguments.length) {
+                                if (i < 3) {
+                                    throw new LuaError(String.format(
+                                            "Expected %d or %d more numbers to complete 'color'",
+                                            3 - i,
+                                            4 - i
+                                    ));
+                                }
+                                readHead--;
+                                break;
+                            }
+                            Object item = arguments[readHead];
+                            if (item instanceof Number) {
+                                colorData[i] = ((Number) item).doubleValue();
+                            } else {
+                                if (i < 3) {
+                                    throw new LuaError(String.format(
+                                            "bad type for argument #%d: Expected %d or %d more numbers to complete 'color', got a %s instead",
+                                            readHead,
+                                            3 - i,
+                                            4 - i,
+                                            item != null ? item.getClass().getSimpleName() : "nil"
+                                    ));
+                                }
+                                readHead--;
+                                break;
+                            }
+                        }
+                        options.set(nextParam, MathUtils.sizedVector(colorData));
+                        nextParam += 1;
+                    } else {
+                        throw new LuaError(String.format(
+                                "bad type for argument #%d, expected Vector4 (color)",
+                                readHead + 1
+                        ));
+                    }
+                    break;
+                }
+                case 5: {
+                    if (next instanceof Boolean) {
+                        options.set(nextParam, next);
+                    }
+                    nextParam += 1;
+                    break;
+                }
+                case 6: {
+                    if (next instanceof String || next instanceof BlendMode) {
+                        options.set(nextParam, next);
+                    }
+                    nextParam += 1;
+                    break;
+                }
+            }
+
+            if (nextParam > 6) {
+                for (int i = readHead + 1; i < arguments.length; i++) {
+                    if (arguments[i] != null) throw new LuaError(String.format(
+                            "unexpected argument #%d (all slots filled at argument #%d)",
+                            i + 1,
+                            readHead + 1
+                    ));
+                }
+            }
+            readHead += 1;
+        }
+        if (options.withAA) {
+            aaLineReal(options.x0, options.y0, options.x1, options.y1, options.color, options.mode);
+        } else {
+            lineReal(options.x0, options.y0, options.x1, options.y1, options.color, options.mode);
+        }
     }
 
     @LuaWhitelist
