@@ -31,6 +31,9 @@ public class FiguraCommands {
         // load
         root.then(LoadCommand.getCommand());
 
+        // upload
+        root.then(UploadCommand.getCommand());
+
         // reload
         root.then(ReloadCommand.getCommand());
 
