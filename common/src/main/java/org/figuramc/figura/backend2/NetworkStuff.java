@@ -350,13 +350,6 @@ public class NetworkStuff {
 			for (int i = 0; i < special.size(); i++)
 				specialSet.set(i, special.get(i).getAsInt() >= 1);
 
-			//default permission
-			JsonElement trust = json.get("trust");
-			if (trust != null) {
-				Permissions.Category cat = Permissions.Category.indexOf(trust.getAsInt());
-				if (cat != null) PermissionManager.setDefaultFor(user.id, cat);
-			}
-
 			user.loadData(avatars, badgesPair);
 		});
 	}
