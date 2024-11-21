@@ -1,4 +1,4 @@
-package org.figuramc.figura.mixin.render.layers;
+package org.figuramc.figura.mixin.fabric;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -28,6 +28,7 @@ import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.compat.GeckoLibCompat;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaPart;
+import org.figuramc.figura.mixin.render.layers.HumanoidArmorLayerAccessor;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.FiguraArmorPartRenderer;
@@ -38,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = HumanoidArmorLayer.class, priority = 900)
-public abstract class HumanoidArmorLayerMixin<T extends LivingEntity, M extends HumanoidModel<T>, A extends HumanoidModel<T>> extends RenderLayer<T, M> implements HumanoidArmorLayerAccessor<T, M, A> {
+public abstract class HumanoidArmorLayerMixinFabric<T extends LivingEntity, M extends HumanoidModel<T>, A extends HumanoidModel<T>> extends RenderLayer<T, M> implements HumanoidArmorLayerAccessor<T, M, A> {
 
     @Shadow
     protected abstract A getArmorModel(EquipmentSlot slot);
@@ -52,13 +53,14 @@ public abstract class HumanoidArmorLayerMixin<T extends LivingEntity, M extends 
 
     @Shadow @Final private A innerModel;
     @Shadow @Final private A outerModel;
+
     @Unique
     private boolean figura$renderingVanillaArmor;
 
     @Unique
     private Avatar figura$avatar;
 
-    public HumanoidArmorLayerMixin(RenderLayerParent<T, M> context) {
+    public HumanoidArmorLayerMixinFabric(RenderLayerParent<T, M> context) {
         super(context);
     }
 
@@ -136,28 +138,31 @@ public abstract class HumanoidArmorLayerMixin<T extends LivingEntity, M extends 
 
             boolean allFailed = true;
             VanillaPart mainPart = RenderUtils.partFromSlot(figura$avatar, slot);
-            if (figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && mainPart != null && !mainPart.checkVisible()) return;
+            int armorEditPermission = figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT);
+            if (armorEditPermission == 1 && mainPart != null && !mainPart.checkVisible()) return;
 
             // Don't render armor if GeckoLib is already doing the rendering
             if (!GeckoLibCompat.armorHasCustomModel(itemStack)) {
                 // Go through each parent type needed to render the current piece of armor
                 for (ParentType parentType : parentTypes) {
-                        // Skip the part if it's hidden
-                        VanillaPart part = RenderUtils.pivotToPart(figura$avatar, parentType);
-                        if (figura$avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && part != null && !part.checkVisible()) continue;
-
-                        // Try to render the pivot part
-                        boolean renderedPivot = figura$avatar.pivotPartRender(parentType, stack -> {
-                                stack.pushPose();
-                                figura$prepareArmorRender(stack);
-                                renderer.renderArmorPart(stack, vertexConsumers, light, armorModel, entity, itemStack, slot, armorItem, parentType);
-                                stack.popPose();
-                            });
-
-                            if (renderedPivot) {
-                                allFailed = false;
-                            }
-                        }
+                    // Skip the part if it's hidden
+                    VanillaPart part = RenderUtils.pivotToPart(figura$avatar, parentType);
+                    if (armorEditPermission == 1 && part != null && !part.checkVisible()) continue;
+                    boolean renderedPivot = false;
+                        // If the user has no permission disable pivot
+                    if (armorEditPermission == 1) {
+                    // Try to render the pivot part
+                     renderedPivot = figura$avatar.pivotPartRender(parentType, stack -> {
+                        stack.pushPose();
+                        figura$prepareArmorRender(stack);
+                        renderer.renderArmorPart(stack, vertexConsumers, light, armorModel, entity, itemStack, slot, armorItem, parentType);
+                        stack.popPose();
+                    });
+}
+                    if (renderedPivot) {
+                        allFailed = false;
+                    }
+                }
             }
             // As a fallback, render armor the vanilla way
             if (allFailed) {

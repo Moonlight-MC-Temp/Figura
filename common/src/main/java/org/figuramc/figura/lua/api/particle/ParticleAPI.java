@@ -62,10 +62,10 @@ public class ParticleAPI {
                 blockName = blockPart.split("\\[")[0];
                 String properties = id.substring(id.indexOf("[")+1, id.indexOf("]")+1);
                 properties = properties.replaceAll("=", ":\"").replaceAll(",", "\",").replace("]", "\"");
-                ret += ("Name:" + blockName + ",Properties:{" + properties + "}");
+                ret += ("Name:\"" + blockName + "\",Properties:{" + properties + "}");
             } else {
                 blockName = blockPart;
-                ret += ("Name:" + blockName);
+                ret += ("Name:\"" + blockName + "\"");
             }
 
             ret += "}}";
@@ -80,10 +80,10 @@ public class ParticleAPI {
                 blockName = blockPart.split("\\[")[0];
                 String properties = id.substring(id.indexOf("[")+1, id.indexOf("]")+1);
                 properties = properties.replaceAll("=", ":\"").replaceAll(",", "\",").replace("]", "\"");
-                ret += ("Name:" + blockName + ",Properties:{" + properties + "}");
+                ret += ("Name:\"" + blockName + "\",Properties:{" + properties + "}");
             } else {
                 blockName = blockPart;
-                ret += ("Name:" + blockName);
+                ret += ("Name:\"" + blockName + "\"");
             }
 
             ret += "}}";
@@ -98,10 +98,10 @@ public class ParticleAPI {
                 blockName = blockPart.split("\\[")[0];
                 String properties = id.substring(id.indexOf("[")+1, id.indexOf("]")+1);
                 properties = properties.replaceAll("=", ":\"").replaceAll(",", "\",").replace("]", "\"");
-                ret += ("Name:" + blockName + ",Properties:{" + properties + "}");
+                ret += ("Name:\"" + blockName + "\",Properties:{" + properties + "}");
             } else {
                 blockName = blockPart;
-                ret += ("Name:" + blockName);
+                ret += ("Name:\"" + blockName + "\"");
             }
 
             ret += "}}";
@@ -159,7 +159,7 @@ public class ParticleAPI {
             id = id.replaceFirst("minecraft:", "");
             String[] parts = id.split(" ");
             String ret = "shriek{";
-            if (Objects.equals(parts[0], "shriek ")) {
+            if (Objects.equals(parts[0], "shriek")) {
                 String delay = parts[1];
                 ret += ("delay:"+delay);
             }
@@ -178,8 +178,9 @@ public class ParticleAPI {
             }
             ret += "}";
             id = ret;
-        } else if (id.contains("entity_effect") && !id.contains("{")) {
-            id += "{color:[0.0,0.0,0.0,1.0]}";
+        } else if (id.contains("entity_effect")) {
+            if (!id.contains("{"))
+                id += "{color:[0.0,0.0,0.0,1.0]}";
         }
         return id;
     }

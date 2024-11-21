@@ -278,14 +278,22 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
             // recalculate light
             FiguraMod.popPushProfiler("calculateLight");
             Level l;
-            if (custom.light != null)
+            if (custom.light != null) {
                 updateLight = false;
+                pivotOffsetter.light = custom.light;
+            }
             else if (updateLight && (l = Minecraft.getInstance().level) != null) {
                 FiguraVec3 pos = part.savedPartToWorldMat.apply(0d, 0d, 0d);
                 int block = l.getBrightness(LightLayer.BLOCK, pos.asBlockPos());
                 int sky = l.getBrightness(LightLayer.SKY, pos.asBlockPos());
                 customizationStack.peek().light = LightTexture.pack(block, sky);
+                pivotOffsetter.light = customizationStack.peek().light;
             }
+
+            if (custom.alpha != null)
+                pivotOffsetter.alpha = custom.alpha;
+            if (custom.overlay != null)
+                pivotOffsetter.overlay = custom.overlay;
         }
 
         // mid render function

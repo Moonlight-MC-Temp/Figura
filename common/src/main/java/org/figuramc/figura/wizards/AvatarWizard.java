@@ -314,8 +314,8 @@ public class AvatarWizard {
         if (hasArmor) {
             model.addGroup(HelmetPivot, FiguraVec3.of(0, 24, 0), head);
             model.addGroup(ChestplatePivot, FiguraVec3.of(0, 24, 0), body);
-            model.addGroup(LeftElytra, FiguraVec3.of(0, 24, 0), body);
-            model.addGroup(RightElytra, FiguraVec3.of(0, 24, 0), body);
+            model.addGroup(LeftElytraPivot, FiguraVec3.of(0, 24, 0), body);
+            model.addGroup(RightElytraPivot, FiguraVec3.of(0, 24, 0), body);
             model.addGroup(LeftShoulderPivot, FiguraVec3.of(-6, 24, 0), leftArm);
             model.addGroup(RightShoulderPivot, FiguraVec3.of(6, 24, 0), rightArm);
             model.addGroup(LeggingsPivot, FiguraVec3.of(0, 12, 0), body);

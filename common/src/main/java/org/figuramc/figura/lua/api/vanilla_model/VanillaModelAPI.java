@@ -293,6 +293,12 @@ public class VanillaModelAPI {
                 allParts.put(name, model);
                 parts.add(model);
             }
+            for (Pair<String, Pair<Function<EntityModel<?>, ModelPart>, ParentType>> part : entrypoint.getPartsWithParent()) {
+                String name = ID + "_" + part.getFirst().toUpperCase(Locale.US);
+                VanillaModelPart model = new VanillaModelPart(owner, name, part.getSecond().getSecond(), part.getSecond().getFirst());
+                allParts.put(name, model);
+                parts.add(model);
+            }
 
             // add to group list
             VanillaGroupPart group = new VanillaGroupPart(owner, ID, parts.toArray(new VanillaModelPart[0]));

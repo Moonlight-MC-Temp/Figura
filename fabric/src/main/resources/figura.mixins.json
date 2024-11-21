@@ -5,7 +5,8 @@
   "minVersion": "0.8",
   "client": [
     "CommandSuggestionsMixinFabric",
-    "GuiMixin"
+    "GuiMixin",
+    "HumanoidArmorLayerMixinFabric"
   ],
   "mixins": [
   ],

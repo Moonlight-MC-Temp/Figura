@@ -25,6 +25,10 @@ public class EntryPointManager {
         EventsAPI.initEntryPoints(load("figura_event", FiguraEvent.class));
     }
 
+    public static void reinit() {
+        PermissionManager.initEntryPoints(load("figura_permissions", FiguraPermissions.class));
+    }
+
     @ExpectPlatform
     private static <T> Set<T> load(String name, Class<T> clazz) {
         throw new AssertionError();

@@ -1414,6 +1414,9 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
             value = "model_part.move_to"
     )
     public FiguraModelPart moveTo(@LuaNotNil FiguraModelPart part) {
+        if (part == this)
+            throw new LuaError("Fractal, cannot parent part to itself");
+
         if (parent != null) {
             parent.children.remove(this);
             parent.childCache.remove(this.name);
@@ -1437,12 +1440,13 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
             value = "model_part.add_child"
     )
     public FiguraModelPart addChild(@LuaNotNil FiguraModelPart part) {
+        if (part == this)
+            throw new LuaError("Fractal, cannot parent part to itself");
+
         FiguraModelPart parent = this.parent;
         while (parent != null) {
             if (part == parent)
                 throw new LuaError("Cannot add child that's already parent of this part");
-            if (part == this)
-                throw new LuaError("Fractal, cannot parent part to itself");
             parent = parent.parent;
         }
 

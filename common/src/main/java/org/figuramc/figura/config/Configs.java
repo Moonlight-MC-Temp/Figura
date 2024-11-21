@@ -8,6 +8,7 @@ import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.avatar.local.CacheAvatarLoader;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import org.figuramc.figura.backend2.NetworkStuff;
+import org.figuramc.figura.entries.EntryPointManager;
 import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.gui.screens.ConfigScreen;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
@@ -270,6 +271,7 @@ public class Configs {
             super.onChange();
             PermissionManager.reinit();
             LocalAvatarFetcher.reinit();
+            EntryPointManager.reinit();
         }
     };
     public static final ConfigType.IPConfig

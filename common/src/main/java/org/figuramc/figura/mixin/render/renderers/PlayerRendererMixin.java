@@ -99,7 +99,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         // customization boolean, which also is the permission check
         boolean hasCustom = custom != null && avatar.permissions.get(Permissions.NAMEPLATE_EDIT) == 1;
 
-        Component name = Component.literal(text.getString());
+        Component name = Component.literal(player.getName().getString());
         FiguraMod.popPushProfiler("text");
 
         Component replacement = hasCustom && custom.getJson() != null ? custom.getJson().copy() : name;
@@ -117,12 +117,14 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         return text;
     }
 
+    // Push for scoreboard rendering
     @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;pushPose()V"))
     private void pushProfilerForRender(AbstractClientPlayer player, Component text, PoseStack stack, MultiBufferSource multiBufferSource, int light, float delta, CallbackInfo ci) {
         FiguraMod.popPushProfiler("render");
         FiguraMod.pushProfiler("scoreboard");
     }
 
+    // Pop the profiler after everything's done
     @Inject(method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;IF)V", at = @At(value = "TAIL"))
     private void popProfiler(AbstractClientPlayer player, Component text, PoseStack stack, MultiBufferSource multiBufferSource, int light, float delta, CallbackInfo ci) {
         FiguraMod.popProfiler(5);
@@ -153,9 +155,12 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
             return;
         }
 
-        FiguraMod.pushProfiler(FiguraMod.MOD_ID);
-        FiguraMod.pushProfiler(player.getName().getString());
-        FiguraMod.pushProfiler("nameplate");
+        // If the user has an avatar equipped, figura nameplate rendering will be enabled so the profiler is pushed
+        if (hasCustom) {
+            FiguraMod.pushProfiler(FiguraMod.MOD_ID);
+            FiguraMod.pushProfiler(player.getName().getString());
+            FiguraMod.pushProfiler("nameplate");
+        }
     }
 
 

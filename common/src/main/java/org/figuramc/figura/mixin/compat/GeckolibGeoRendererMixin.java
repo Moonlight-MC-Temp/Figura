@@ -114,10 +114,15 @@ public interface GeckolibGeoRendererMixin<T extends GeoAnimatable> {
         if (geoBone == null)
             return true;
 
+        int armorEditPermission = avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT);
         // Returns successfully but skips rendering if the part is hidden
         VanillaPart part = RenderUtils.pivotToPart(avatar, parentType);
-        if (avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1 && part != null && !part.checkVisible())
+        if (armorEditPermission == 1 && part != null && !part.checkVisible())
             return false;
+
+        // If the user has no permission disable pivots
+        if (armorEditPermission != 1)
+            return true;
 
         return !avatar.pivotPartRender(parentType, stack -> {
             geoBone.setRotX(0);
