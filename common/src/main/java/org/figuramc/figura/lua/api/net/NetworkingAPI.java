@@ -89,9 +89,9 @@ public class NetworkingAPI {
         if (level == null) return false;
         ArrayList<Filter> filters = Configs.NETWORK_FILTER.getFilters();
         try {
-            URL url = new URL(link);
-            if (url.getPort() != -1 && url.getPort() != 80 && url.getPort() != 443)
-                throw new LuaError("Port %s not allowed, only 80 (HTTP) and 443 (HTTPS) are permitted.".formatted(url.getPort()));
+            // URL url = new URL(link);
+            // if (url.getPort() != -1 && url.getPort() != 80 && url.getPort() != 443)
+            //     throw new LuaError("Port %s not allowed, only 80 (HTTP) and 443 (HTTPS) are permitted.".formatted(url.getPort()));
 
             return switch (level) {
                 case WHITELIST -> filters.stream().anyMatch(f -> f.matches(url.getHost()));
