@@ -1,5 +1,6 @@
 package org.figuramc.figura.lua;
 
+import io.netty.util.internal.shaded.org.jctools.util.UnsafeAccess;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.lua.docs.FiguraDocsManager;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
@@ -126,8 +127,21 @@ public class LuaTypeManager {
     public VarArgFunction getWrapper(Method method) {
         return new VarArgFunction() {
 
-            private final boolean isStatic = Modifier.isStatic(method.getModifiers());
+            private final boolean fakeStatic = method.getAnnotation(FakeStatic.class) != null;
+            private final boolean isStatic = fakeStatic || Modifier.isStatic(method.getModifiers());
+            private static final Map<Class<?>, ? super Object> warcrimes = new HashMap();
             private Object caller;
+            {
+                if (fakeStatic) {
+                    caller = warcrimes.computeIfAbsent(method.getDeclaringClass(), clazz -> {
+                        try {
+                            return UnsafeAccess.UNSAFE.allocateInstance(clazz);
+                        } catch (InstantiationException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+            }
 
 
             private final Class<?> clazz = method.getDeclaringClass();
