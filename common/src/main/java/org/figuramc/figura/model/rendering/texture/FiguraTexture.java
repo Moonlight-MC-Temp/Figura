@@ -459,7 +459,7 @@ public class FiguraTexture extends SimpleTexture {
                     }
                     case "mode": {
                         BlendMode m = BlendMode.NAMES.get(value.checkjstring());
-                        if (m == null) throw new LuaError("Unknown blitting mode '" + value.checkjstring() + "'");
+                        if (m == null) throw new LuaError("Unknown blending mode '" + value.checkjstring() + "'.");
                         mode = m;
                     }
                 }
