@@ -30,6 +30,13 @@ public class JsonUtils {
         return fallback;
     }
 
+    public static boolean getBooleanOrDefault(JsonObject object, String fieldName, boolean fallback) {
+        if (validate(object, fieldName, JsonElement::isJsonPrimitive)) {
+            return object.get(fieldName).getAsBoolean();
+        }
+        return fallback;
+    }
+
     public static LuaValue asLuaValue(JsonElement value) {
         if (value.isJsonPrimitive()) {
             JsonPrimitive p = value.getAsJsonPrimitive();

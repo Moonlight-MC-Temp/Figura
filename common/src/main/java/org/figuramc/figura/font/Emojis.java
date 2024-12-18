@@ -15,7 +15,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Function;
 
 public class Emojis {
 
@@ -180,7 +179,7 @@ public class Emojis {
                         for (String shortcut : shortcuts) {
                             if (s.startsWith(shortcut)) {
                                 s = s.substring(shortcut.length());
-                                result.append(SHORTCUT_LOOKUP.get(shortcut).getShortcutComponent(shortcut));
+                                result.append(SHORTCUT_LOOKUP.get(shortcut).getShortcutComponent(shortcut, style));
                                 anyFound = true;
                                 break;
                             }
@@ -198,25 +197,26 @@ public class Emojis {
             }
             // odd: format and append emoji
             else {
-                appendEmoji(result, s, Emojis::getEmoji);
+                appendEmoji(result, s, style);
             }
         }
 
         return result;
     }
 
-    private static void appendEmoji(MutableComponent result, String s, Function<String, Component> converter) {
-        Component emoji = converter.apply(s);
+    private static void appendEmoji(MutableComponent result, String alias, Style style) {
+        MutableComponent emoji = Emojis.getEmoji(alias, style);
+        
         if (emoji != null) {
             result.append(emoji);
         } else {
-            result.append(DELIMITER + s + DELIMITER);
+            result.append(DELIMITER + alias + DELIMITER);
         }
     }
 
-    public static Component getEmoji(String emojiAlias) {
+    public static MutableComponent getEmoji(String emojiAlias, Style style) {
         for (EmojiContainer container : EMOJIS.values()) {
-            Component emoji = container.getEmojiComponent(emojiAlias);
+            MutableComponent emoji = container.getEmojiComponent(emojiAlias, style);
             if (emoji != null) {
                 return emoji;
             }
@@ -224,9 +224,9 @@ public class Emojis {
         return null;
     }
 
-    public static Component getEmoji(String emojiAlias, MutableComponent hover) {
+    public static MutableComponent getEmoji(String emojiAlias, Style style, MutableComponent hover) {
         for (EmojiContainer container : EMOJIS.values()) {
-            Component emoji = container.getEmojiComponent(emojiAlias, hover);
+            MutableComponent emoji = container.getEmojiComponent(emojiAlias, hover, style);
             if (emoji != null) {
                 return emoji;
             }

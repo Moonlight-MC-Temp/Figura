@@ -9,6 +9,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import org.figuramc.figura.font.EmojiContainer;
 import org.figuramc.figura.font.EmojiUnicodeLookup;
 import org.figuramc.figura.font.Emojis;
@@ -85,7 +86,7 @@ class EmojiListCommand {
                     }
                 }
                 msg.append(literal("\ncodepoint: " + unicode.codePointAt(0)).withStyle(ChatFormatting.GRAY));
-                comp.append(Emojis.getEmoji(aliases[0], msg));
+                comp.append(Emojis.getEmoji(aliases[0], Style.EMPTY, msg));
             }
         });
 
