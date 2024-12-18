@@ -1029,6 +1029,7 @@
     "figura.docs.player.get_saturation": "Gets the current saturation level of the player",
     "figura.docs.player.get_exhaustion": "Gets the current exhaustion level of the player",
     "figura.docs.player.get_experience_progress": "Gets the progress of the way towards the player's next level, as a value from 0 to 1",
+    "player.get_xp_for_next_level": "Gets the amount of experience needed to level up",
     "figura.docs.player.get_experience_level": "Gets the player's current level",
     "figura.docs.player.get_model_type": "Returns \"SLIM\" or \"DEFAULT\", depending on the player's model type",
     "figura.docs.player.get_gamemode": "Returns \"SURVIVAL\", \"CREATIVE\", \"ADVENTURE\", or \"SPECTATOR\" depending on the player's gamemode\nIf the gamemode is unknown, returns nil",
