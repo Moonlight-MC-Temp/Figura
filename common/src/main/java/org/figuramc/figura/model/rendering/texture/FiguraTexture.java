@@ -24,7 +24,6 @@ import org.figuramc.figura.mixin.render.TextureManagerAccessor;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.LuaUtils;
-import org.figuramc.figura.utils.MathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
@@ -561,9 +560,11 @@ public class FiguraTexture extends SimpleTexture {
                 if (real == null) continue;
                 FiguraVec4 sColorTrue = source.getPixel(sX, sY);
                 FiguraVec4 tColorTrue = getActualPixel(real.getFirst(), real.getSecond());
-                setActualPixel(real.getFirst(), real.getSecond(), ColorUtils.rgbaToIntABGR(
-                        composeColors(tColorTrue, sColorTrue, options.mode, false)
-                ));
+                setActualPixel(
+                        real.getFirst(), real.getSecond(), ColorUtils.rgbaToIntABGR(
+                                composeColors(tColorTrue, sColorTrue, options.mode, false)
+                        )
+                );
             }
         }
         return this;
@@ -718,199 +719,41 @@ public class FiguraTexture extends SimpleTexture {
         }
     }
 
-    private static class LineArgs {
-        int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-        FiguraVec4 color = null;
-        boolean withAA = false;
-        BlendMode mode = BlendMode.NORMAL;
-
-        void set(int index, Object value) {
-            int n = (value instanceof Integer) ? (Integer) value : -1;
-            boolean b = (value instanceof Boolean) ? (Boolean) value : false;
-            FiguraVec4 v4 = (value instanceof FiguraVec4) ? (FiguraVec4) value : null;
-            BlendMode bm;
-            if (value instanceof BlendMode) bm = (BlendMode) value;
-            else if (value instanceof String) {
-                bm = BlendMode.NAMES.get((String) value);
-            } else bm = null;
-            switch (index) {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                    if (!(value instanceof Integer)) throw new LuaError("wrong type assigned to slot " + index);
-                    break;
-                case 4:
-                    if (v4 == null) throw new LuaError("wrong type assigned to slot " + index);
-                    break;
-                case 5:
-                    if (!(value instanceof Boolean)) throw new LuaError("wrong type assigned to slot " + index);
-                    break;
-                case 6:
-                    if (bm == null) throw new LuaError("wrong type or invalid BlendMode string for slot " + index);
-                    break;
-            }
-            switch (index) {
-                case 0:
-                    x0 = n;
-                    break;
-                case 1:
-                    y0 = n;
-                    break;
-                case 2:
-                    x1 = n;
-                    break;
-                case 3:
-                    y1 = n;
-                    break;
-                case 4:
-                    color = v4;
-                    break;
-                case 5:
-                    withAA = b;
-                    break;
-                case 6:
-                    mode = bm;
-                    break;
-                default:
-                    throw new LuaError("attempt to assign argument slot " + index);
-            }
-        }
-    }
-
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture.line",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentNames = {"xy0", "xy1", "color"},
+                            argumentTypes = {FiguraVec2.class, FiguraVec2.class, FiguraVec4.class}
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = {"xy0", "xy1", "color", "antialias"},
+                            argumentTypes = {FiguraVec2.class, FiguraVec2.class, FiguraVec4.class, Boolean.class}
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = {"xy0", "xy1", "color", "antialias", "blendMode"},
+                            argumentTypes = {FiguraVec2.class, FiguraVec2.class, FiguraVec4.class, Boolean.class, String.class}
+                    )
+            }
+    )
     public void line(
-                            // Max          Min (all)       Min (w/defaults)
-            Object arg1,    // x0           x0,y0           x0,y0
-            Object arg2,    // y0           x1,y1           x1,y1
-            Object arg3,    // x1           color (vec4)    color (vec4)
-            Object arg4,    // y1           AA?             [null]...
-            Object arg5,    // color.r      BlendMode
-            Object arg6,    // color.g      [null]...
-            Object arg7,    // color.b
-            Object arg8,    // color.a
-            Object arg9,    // AA?
-            Object arg10    // BlendMode
+            FiguraVec2 xy0,
+            FiguraVec2 xy1,
+            FiguraVec4 color,
+            @Nullable Boolean antialias,
+            String blend
     ) {
-        LineArgs options = new LineArgs();
-        Object[] arguments = {arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10};
-        int readHead = 0;
-        int nextParam = 0;
-        while (readHead < arguments.length) {
-            Object next = arguments[readHead];
-            switch (nextParam) {
-                case 0:
-                case 2: {
-                    if (next instanceof FiguraVec2) {
-                        FiguraVec2 v2 = (FiguraVec2) next;
-                        options.set(nextParam, (int) v2.x);
-                        options.set(nextParam + 1, (int) v2.y);
-                        nextParam += 2;
-                    } else if (next instanceof Number) {
-                        options.set(nextParam, ((Number) next).intValue());
-                        nextParam += 1;
-                    } else {
-                        throw new LuaError(String.format(
-                                "bad type for argument #%d, expected Vector2 or integer",
-                                readHead + 1
-                        ));
-                    }
-                    break;
-                }
-                case 1:
-                case 3: {
-                    if (next instanceof FiguraVec2) {
-                        throw new LuaError(String.format(
-                                "bad type for argument #%d (a Vector2 doesn't make sense here; are you missing the second integer of a coordinate pair?)",
-                                readHead + 1
-                        ));
-                    } else if (next instanceof Number) {
-                        options.set(nextParam, ((Number) next).intValue());
-                        nextParam += 1;
-                    } else {
-                        throw new LuaError(String.format("bad type for argument #%d, expected integer", readHead + 1));
-                    }
-                    break;
-                }
-                case 4: {
-                    if (next instanceof FiguraVec4) {
-                        options.set(nextParam, next);
-                        nextParam += 1;
-                    } else if (next instanceof Number) {
-                        double[] colorData = {0.0, 0.0, 0.0, 1.0};
-                        readHead--;
-                        // read AT LEAST 3, UP TO 4 Numbers
-                        for (int i = 0; i < 4; i++) { // i = 0, 1, 2, 3
-                            readHead++;
-                            if (readHead >= arguments.length) {
-                                if (i < 3) {
-                                    throw new LuaError(String.format(
-                                            "Expected %d or %d more numbers to complete 'color'",
-                                            3 - i,
-                                            4 - i
-                                    ));
-                                }
-                                readHead--;
-                                break;
-                            }
-                            Object item = arguments[readHead];
-                            if (item instanceof Number) {
-                                colorData[i] = ((Number) item).doubleValue();
-                            } else {
-                                if (i < 3) {
-                                    throw new LuaError(String.format(
-                                            "bad type for argument #%d: Expected %d or %d more numbers to complete 'color', got a %s instead",
-                                            readHead,
-                                            3 - i,
-                                            4 - i,
-                                            item != null ? item.getClass().getSimpleName() : "nil"
-                                    ));
-                                }
-                                readHead--;
-                                break;
-                            }
-                        }
-                        options.set(nextParam, MathUtils.sizedVector(colorData));
-                        nextParam += 1;
-                    } else {
-                        throw new LuaError(String.format(
-                                "bad type for argument #%d, expected Vector4 (color)",
-                                readHead + 1
-                        ));
-                    }
-                    break;
-                }
-                case 5: {
-                    if (next instanceof Boolean) {
-                        options.set(nextParam, next);
-                    }
-                    nextParam += 1;
-                    break;
-                }
-                case 6: {
-                    if (next instanceof String || next instanceof BlendMode) {
-                        options.set(nextParam, next);
-                    }
-                    nextParam += 1;
-                    break;
-                }
-            }
-
-            if (nextParam > 6) {
-                for (int i = readHead + 1; i < arguments.length; i++) {
-                    if (arguments[i] != null) throw new LuaError(String.format(
-                            "unexpected argument #%d (all slots filled at argument #%d)",
-                            i + 1,
-                            readHead + 1
-                    ));
-                }
-            }
-            readHead += 1;
+        boolean antialiasActual = (antialias != null) && antialias;
+        BlendMode blendActual = BlendMode.NORMAL;
+        if (blend != null) {
+            blendActual = BlendMode.NAMES.get(blend);
+            if (blendActual == null) throw new LuaError(String.format("Unknown blending mode '%s'.", blend));
         }
-        if (options.withAA) {
-            aaLineReal(options.x0, options.y0, options.x1, options.y1, options.color, options.mode);
+        if (antialiasActual) {
+            aaLineReal((int) xy0.x, (int) xy0.y, (int) xy1.x, (int) xy1.y, color, blendActual);
         } else {
-            lineReal(options.x0, options.y0, options.x1, options.y1, options.color, options.mode);
+            lineReal((int) xy0.x, (int) xy0.y, (int) xy1.x, (int) xy1.y, color, blendActual);
         }
     }
 
@@ -1022,16 +865,19 @@ public class FiguraTexture extends SimpleTexture {
 
     public enum WriteOverflowStrategy {
         ERROR("error"),
-        DISCARD("ignore", "discard"),
+        IGNORE("ignore", "discard"),
         WRAP("wrap"),
         MIRROR("mirror"),
         CLAMP("clamp");
+
+        public final String primaryName;
 
         WriteOverflowStrategy(String... names) {
             for (String name : names)
                 name2OverflowStrategy.put(name, this);
             if (names.length == 0) throw new IllegalArgumentException("at least one name should be specified");
             overflowStrategy2Name.put(this, names[0]);
+            primaryName = names[0];
         }
     }
 
@@ -1044,7 +890,7 @@ public class FiguraTexture extends SimpleTexture {
                         "(%d, %d) is out of bounds on %dx%d texture",
                         x, y, width, height
                 ));
-            case DISCARD:
+            case IGNORE:
                 return null;
             case WRAP:
                 return Pair.of(
@@ -1149,26 +995,67 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture._math_op",
+            overloads = @LuaMethodOverload(
+                    argumentNames = {"other", "x", "y", "w", "h"},
+                    argumentTypes = {FiguraTexture.class, Integer.class, Integer.class, Integer.class, Integer.class}
+            )
+    )
     public FiguraTexture multiply(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opMultiply);
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture._math_op",
+            overloads = @LuaMethodOverload(
+                    argumentNames = {"other", "x", "y", "w", "h"},
+                    argumentTypes = {FiguraTexture.class, Integer.class, Integer.class, Integer.class, Integer.class}
+            )
+    )
     public FiguraTexture divide(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opDivide);
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture._math_op",
+            overloads = @LuaMethodOverload(
+                    argumentNames = {"other", "x", "y", "w", "h"},
+                    argumentTypes = {FiguraTexture.class, Integer.class, Integer.class, Integer.class, Integer.class}
+            )
+    )
     public FiguraTexture add(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opAdd);
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture._math_op",
+            overloads = @LuaMethodOverload(
+                    argumentNames = {"other", "x", "y", "w", "h"},
+                    argumentTypes = {FiguraTexture.class, Integer.class, Integer.class, Integer.class, Integer.class}
+            )
+    )
     public FiguraTexture subtract(@LuaNotNil @NotNull FiguraTexture other, int x, int y, int w, int h) {
         return mathFunction(other, x, y, w, h, opSubtract);
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture.invert",
+            overloads = {
+                    @LuaMethodOverload(
+                            argumentNames = {"x", "y", "w", "h"},
+                            argumentTypes = {Integer.class, Integer.class, Integer.class, Integer.class}
+                    ),
+                    @LuaMethodOverload(
+                            argumentNames = {"x", "y", "w", "h", "invertAlpha"},
+                            argumentTypes = {Integer.class, Integer.class, Integer.class, Integer.class, Boolean.class}
+                    )
+            }
+    )
     public FiguraTexture invert(int x, int y, int w, int h, Boolean invertAlpha) {
         boolean invertAlpha_real = (invertAlpha != null && invertAlpha);
         backupImage();
@@ -1191,6 +1078,13 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture.set_overflow_mode",
+            overloads = @LuaMethodOverload(
+                    argumentNames = {"mode"},
+                    argumentTypes = {String.class}
+            )
+    )
     public FiguraTexture setOverflowMode(@LuaNotNil @NotNull String mode) {
         if (!name2OverflowStrategy.containsKey(mode)) {
             int i = 0;
@@ -1200,7 +1094,7 @@ public class FiguraTexture extends SimpleTexture {
                 options.append("'").append(k).append("'");
             }
             throw new LuaError(String.format(
-                    "Unknown wrapping mode '%s'\n(known: " + options + ")",
+                    "Unknown overflow mode '%s'\n(valid modes are: " + options + ")",
                     mode
             ));
         }
@@ -1209,8 +1103,9 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("texture.get_overflow_mode")
     public String getOverflowMode() {
-        return overflowStrategy2Name.get(writeOverflowStrategy);
+        return writeOverflowStrategy.primaryName;
     }
 
     @LuaWhitelist
