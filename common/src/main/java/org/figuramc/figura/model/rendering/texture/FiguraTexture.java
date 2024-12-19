@@ -278,6 +278,13 @@ public class FiguraTexture extends SimpleTexture {
      * when downscaling
      */
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture.resize",
+            overloads = @LuaMethodOverload(
+                    argumentNames = { "outputName", "width", "height" },
+                    argumentTypes = { String.class, Integer.class, Integer.class }
+            )
+    )
     public FiguraTexture resize(String outputName, int targetWidth, int targetHeight) {
         // float imprecision strikes again (+/- to prevent rounding to the next number when you're approximately equal)
         final double EPSILON = 1e-6;
@@ -571,6 +578,13 @@ public class FiguraTexture extends SimpleTexture {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc(
+            value = "texture.blit",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = { LuaTable.class },
+                    argumentNames = { "options" }
+            )
+    )
     public FiguraTexture blit(LuaTable options) {
         return blit(BlitOptions.fromTable(options));
     }
