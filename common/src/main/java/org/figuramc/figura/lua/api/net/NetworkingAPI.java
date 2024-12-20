@@ -4,10 +4,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.lua.api.data.FiguraFuture;
 import org.figuramc.figura.lua.docs.LuaMethodOverload;
 import org.figuramc.figura.utils.ColorUtils;
-import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.*;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -15,6 +15,8 @@ import org.figuramc.figura.lua.docs.LuaFieldDoc;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
 import org.figuramc.figura.lua.docs.LuaTypeDoc;
 import org.figuramc.figura.permissions.Permissions;
+import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -25,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 @LuaWhitelist
 @LuaTypeDoc(
@@ -236,6 +239,36 @@ public class NetworkingAPI {
         public String toString() {
             return "LinkNotAllowedException";
         }
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("net.new_future")
+    public Varargs newFuture(LuaFunction k) {
+        final var fut = new FiguraFuture<LuaValue>(owner);
+        final var mgr = owner.luaRuntime.typeManager;
+        final var ret = mgr.javaToLua(fut).arg1();
+        final var onc = new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue val) {
+                fut.complete(val);
+                return ret;
+            }
+        };
+        final var one = new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue err) {
+                fut.error(new LuaError(err));
+                return ret;
+            }
+        };
+        if (k != null) {
+            try {
+                k.call(onc, one);
+            } catch (Throwable t) {
+                fut.error(t);
+            }
+        }
+        return LuaValue.varargsOf(new LuaValue[] {ret, onc, one});
     }
 
     @Override

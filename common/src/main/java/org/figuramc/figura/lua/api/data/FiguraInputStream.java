@@ -1,4 +1,5 @@
 package org.figuramc.figura.lua.api.data;
+<<<<<<< HEAD
 
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.lua.LuaWhitelist;
@@ -48,7 +49,7 @@ public class FiguraInputStream extends InputStream {
     public FiguraFuture<LuaString> readAsync(Integer limit) {
         final int finalLimit = limit != null ? limit : available();
         // Future handle that will be returned
-        FiguraFuture<LuaString> future = new FiguraFuture<>();
+        FiguraFuture<LuaString> future = new FiguraFuture<>(parent);
         // Calling an async read that will be put in a future results
         CompletableFuture.supplyAsync(() -> {
             try {
@@ -63,7 +64,7 @@ public class FiguraInputStream extends InputStream {
             } catch (IOException e) {
                 throw new LuaError(e);
             }
-        }).whenCompleteAsync(future::handle);
+        }).whenCompleteAsync(future::complete);
         return future;
     }
 
