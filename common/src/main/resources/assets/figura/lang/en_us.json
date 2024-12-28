@@ -1468,6 +1468,7 @@
     "figura.docs.renderer.get_camera_normal": "Returns the modified camera normal matrix",
     "figura.docs.renderer.set_camera_normal": "Sets the camera normal matrix with the given matrix",
     "figura.docs.renderer.set_post_effect": "Sets the current rendering effect\nSame as the discontinued Super Secret Settings",
+    "figura.docs.renderer.set_render_arrows": "Sets whether or not arrows should be rendered",
     "figura.docs.renderer.get_fov": "Gets the multiplier of your fov",
     "figura.docs.renderer.set_fov": "Sets the multiplier of your fov\nThe default value is nil, which means no changes will be applied to your fov",
     "figura.docs.renderer.get_crosshair_offset": "Gets the offset of your crosshair",
