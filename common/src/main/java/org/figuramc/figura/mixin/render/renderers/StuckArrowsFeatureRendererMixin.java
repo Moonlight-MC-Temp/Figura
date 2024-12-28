@@ -15,13 +15,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ArrowLayer.class)
 public abstract class StuckArrowsFeatureRendererMixin {
-	private static boolean bool = true;
-
 	@Inject(method = "renderStuckItem", at = @At("HEAD"), cancellable = true)
 	private void disableStuckArrowsRendering(PoseStack matrices, MultiBufferSource vertexConsumers, int light, Entity entity, float directionX, float directionY, float directionZ, float tickDelta, CallbackInfo ci) {
-	Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
-		if (avatar != null && avatar.luaRuntime != null && avatar.luaRuntime.renderer.renderArrows != null && !avatar.luaRuntime.renderer.renderArrows && avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
-			ci.cancel();
+		Avatar avatar = AvatarManager.getAvatar(entity);
+		if (avatar != null && avatar.luaRuntime != null
+			&& avatar.luaRuntime.renderer.renderArrows != null
+			&& !avatar.luaRuntime.renderer.renderArrows
+			&& avatar.permissions.get(Permissions.VANILLA_MODEL_EDIT) == 1) {
+				ci.cancel();
 		}
 	}
 }
