@@ -23,6 +23,7 @@ import org.figuramc.figura.mixin.input.KeyMappingAccessor;
 import org.figuramc.figura.mixin.render.GameRendererAccessor;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.figuramc.figura.model.rendering.texture.RenderTypes;
 import org.figuramc.figura.utils.ColorUtils;
@@ -118,6 +119,14 @@ public class FiguraListDocs {
         for (ResourceLocation resourceLocation : BuiltInRegistries.REGISTRY.keySet())
             add(resourceLocation.getPath());
     }};
+    private static final LinkedHashSet<String> WRITE_OVERFLOW_STRETEGIES = new LinkedHashSet<String>() {{
+        for (FiguraTexture.WriteOverflowStrategy strategy : FiguraTexture.WriteOverflowStrategy.values())
+            add(strategy.primaryName);
+    }};
+    private static final LinkedHashSet<String> BLEND_MODES = new LinkedHashSet<String>() {{
+        for (FiguraTexture.BlendMode mode : FiguraTexture.BlendMode.values())
+            add(mode.name);
+    }};
 
     private enum ListDoc {
         KEYBINDS(() -> FiguraListDocs.KEYBINDS, "Keybinds", "keybinds", 2),
@@ -138,7 +147,9 @@ public class FiguraListDocs {
         BLOCK_RAYCAST_TYPE(() -> FiguraListDocs.BLOCK_RAYCAST_TYPE, "BlockRaycastTypes", "block_raycast_types", 1),
         FLUID_RAYCAST_TYPE(() -> FiguraListDocs.FLUID_RAYCAST_TYPE, "FluidRaycastTypes", "fluid_raycast_types", 1),
         HEIGHTMAP_TYPE(() -> FiguraListDocs.HEIGHTMAP_TYPE, "HeightmapTypes", "heightmap_types", 1),
-        REGISTRIES(() -> FiguraListDocs.REGISTRIES, "Registries", "registries", 1);
+        REGISTRIES(() -> FiguraListDocs.REGISTRIES, "Registries", "registries", 1),
+        WRITE_OVERFLOW_STRATEGIES(() -> FiguraListDocs.WRITE_OVERFLOW_STRETEGIES, "WriteOverflowStrategies", "write_overflow_strategies", 1),
+        BLEND_MODES(() -> FiguraListDocs.BLEND_MODES, "BlendModes", "blend_modes", 1);
 
         private final Supplier<Object> supplier;
         private final String name, id;
