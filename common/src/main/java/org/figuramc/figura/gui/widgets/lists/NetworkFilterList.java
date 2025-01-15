@@ -188,7 +188,7 @@ public class NetworkFilterList extends AbstractList {
         private final TextField filterTextField;
         private final NetworkFilterList parent;
         public NetworkFilterEntry(NetworkFilterList parent, int x, int y, int width, int height) {
-            this(parent, x, y, width, height, new NetworkingAPI.Filter("https://example.com"));
+            this(parent, x, y, width, height, new NetworkingAPI.Filter("example.com"));
         }
 
         public NetworkFilterEntry(NetworkFilterList parent, int x, int y, int width, int height, NetworkingAPI.Filter sourceFilter) {
