@@ -123,7 +123,7 @@ public class FiguraListDocs {
         for (FiguraTexture.WriteOverflowStrategy strategy : FiguraTexture.WriteOverflowStrategy.values())
             add(strategy.primaryName);
     }};
-    private static final LinkedHashSet<String> BLEND_MODES = new LinkedHashSet<>() {{
+    private static final LinkedHashSet<String> BLEND_MODES = new LinkedHashSet<String>() {{
         for (FiguraTexture.BlendMode mode : FiguraTexture.BlendMode.values())
             add(mode.name);
     }};
