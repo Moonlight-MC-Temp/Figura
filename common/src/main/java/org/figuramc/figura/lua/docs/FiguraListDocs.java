@@ -119,7 +119,7 @@ public class FiguraListDocs {
         for (ResourceLocation resourceLocation : BuiltInRegistries.REGISTRY.keySet())
             add(resourceLocation.getPath());
     }};
-    private static final LinkedHashSet<String> WRITE_OVERFLOW_STRETEGIES = new LinkedHashSet<>() {{
+    private static final LinkedHashSet<String> WRITE_OVERFLOW_STRETEGIES = new LinkedHashSet<String>() {{
         for (FiguraTexture.WriteOverflowStrategy strategy : FiguraTexture.WriteOverflowStrategy.values())
             add(strategy.primaryName);
     }};
