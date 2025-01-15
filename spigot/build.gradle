@@ -1,0 +1,54 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "8.1.1"
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+}
+
+repositories {
+    maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
+    maven { url "https://libraries.minecraft.net" }
+}
+
+dependencies {
+    compileOnly "org.spigotmc:spigot-api:$minecraft_version-R0.1-SNAPSHOT"
+
+    compileOnly "com.mojang:brigadier:${rootProject.brigadier}"
+
+    common(project(path: ":server-common")) { transitive false }
+    shadowCommon(project(path: ":server-common")) { transitive false }
+}
+
+jar {
+    from("LICENSE") {
+        rename { String.valueOf("$archives_base_name").toUpperCase() + "_${it}"}
+    }
+    archiveClassifier.set "spigot-unshaded"
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set "spigot"
+}
+
+build {
+    dependsOn shadowJar
+}
+
+processResources {
+    Map<String, Object> properties = new HashMap<>()
+
+    properties.put("version", project.jarVersion)
+    properties.put("java_version", rootProject.java_version)
+    properties.put("minecraft_version", rootProject.minecraft_version)
+    properties.put("assets_version", rootProject.assets_version)
+
+    properties.forEach((k, v) -> inputs.property(k, v.toString()))
+    filesMatching("plugin.yml") {
+        expand properties
+    }
+}

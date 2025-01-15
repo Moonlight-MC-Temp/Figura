@@ -1,0 +1,11 @@
+repositories {
+    maven { url "https://libraries.minecraft.net" }
+}
+
+dependencies {
+    compileOnly "com.mojang:brigadier:${rootProject.brigadier}"
+
+    compileOnly 'org.jetbrains:annotations:26.0.1'
+
+    implementation 'com.google.code.gson:gson:2.11.0'
+}

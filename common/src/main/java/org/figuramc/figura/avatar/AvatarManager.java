@@ -267,11 +267,6 @@ public class AvatarManager {
 
         FETCHED_USERS.add(id);
 
-        if (EntityUtils.checkInvalidPlayer(id)) {
-            FiguraMod.debug("Voiding userdata for " + id);
-            return;
-        }
-
         UserData user = LOADED_USERS.computeIfAbsent(id, UserData::new);
 
         FiguraMod.debug("Getting userdata for " + id);

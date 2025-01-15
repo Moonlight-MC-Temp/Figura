@@ -2,6 +2,7 @@ package org.figuramc.figura.gui.widgets.permissions;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -10,6 +11,7 @@ import org.figuramc.figura.gui.widgets.StatusWidget;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.MathUtils;
+import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class PlayerStatusWidget extends StatusWidget {
 
     private final UUID owner;
     private Avatar avatar;
+    private int size, complexity, init, tick, render;
 
     public PlayerStatusWidget(int x, int y, int width, UUID owner) {
         super(x, y, width, HOVER_TEXT.size());
@@ -55,27 +58,43 @@ public class PlayerStatusWidget extends StatusWidget {
         }
 
         // size
-        status = !FiguraMod.isLocal(owner) ? 3 : avatar.fileSize > NetworkStuff.getSizeLimit() ? 1 : avatar.fileSize > NetworkStuff.getSizeLimit() * 0.75 ? 2 : 3;
+        size = !FiguraMod.isLocal(owner) ? 3 : avatar.fileSize > NetworkStuff.getSizeLimit() ? 1 : avatar.fileSize > NetworkStuff.getSizeLimit() * 0.75 ? 2 : 3;
 
         // complexity
-        int complexity = avatar.renderer == null ? 0 : avatar.complexity.pre >= avatar.permissions.get(Permissions.COMPLEXITY) ? 1 : 3;
-        status += complexity << 2;
+        complexity = avatar.renderer == null ? 0 : avatar.complexity.pre >= avatar.permissions.get(Permissions.COMPLEXITY) ? 1 : 3;
 
         // script init
-        int init = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.init.getTotal() >= avatar.permissions.get(Permissions.INIT_INST) * 0.75 ? 2 : 3;
-        status += init << 4;
+        init = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.init.getTotal() >= avatar.permissions.get(Permissions.INIT_INST) * 0.75 ? 2 : 3;
 
         // script tick
-        int tick = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.tick.getTotal() >= avatar.permissions.get(Permissions.TICK_INST) * 0.75 || avatar.worldTick.getTotal() >= avatar.permissions.get(Permissions.WORLD_TICK_INST) * 0.75 ? 2 : 3;
-        status += tick << 6;
+        tick = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.tick.getTotal() >= avatar.permissions.get(Permissions.TICK_INST) * 0.75 || avatar.worldTick.getTotal() >= avatar.permissions.get(Permissions.WORLD_TICK_INST) * 0.75 ? 2 : 3;
 
         // script render
-        int render = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.render.getTotal() >= avatar.permissions.get(Permissions.RENDER_INST) * 0.75 || avatar.worldRender.getTotal() >= avatar.permissions.get(Permissions.WORLD_RENDER_INST) * 0.75 ? 2 : 3;
-        status += render << 8;
+        render = avatar.scriptError ? 1 : avatar.luaRuntime == null ? 0 : avatar.render.getTotal() >= avatar.permissions.get(Permissions.RENDER_INST) * 0.75 || avatar.worldRender.getTotal() >= avatar.permissions.get(Permissions.WORLD_RENDER_INST) * 0.75 ? 2 : 3;
+    }
+
+    @Override
+    public MutableComponent getStatusIcon(int type) {
+        return Component.literal(String.valueOf(STATUS_INDICATORS.charAt(switch (type) {
+            case 0 -> size;
+            case 1 -> complexity;
+            case 2 -> init;
+            case 3 -> tick;
+            case 4 -> render;
+            default -> 0;
+        }))).setStyle(Style.EMPTY.withFont(UIHelper.UI_FONT));
     }
 
     @Override
     public Component getTooltipFor(int i) {
-        return avatar == null ? null : HOVER_TEXT.get(i).apply(avatar).setStyle(TEXT_COLORS.get(status >> (i * 2) & 3));
+        int color = switch (i) {
+            case 0 -> size;
+            case 1 -> complexity;
+            case 2 -> init;
+            case 3 -> tick;
+            case 4 -> render;
+            default -> 0;
+        };
+        return avatar == null ? null : HOVER_TEXT.get(i).apply(avatar).setStyle(TEXT_COLORS.get(color));
     }
 }

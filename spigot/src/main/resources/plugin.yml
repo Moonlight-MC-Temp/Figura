@@ -1,0 +1,7 @@
+name: Figura
+main: org.figuramc.figura.server.FiguraSpigot
+version: ${version}
+
+commands:
+  fsb:
+    description: FiguraServerBackend command root

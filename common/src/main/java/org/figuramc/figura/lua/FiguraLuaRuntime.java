@@ -5,10 +5,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.lua.api.AvatarAPI;
-import org.figuramc.figura.lua.api.HostAPI;
-import org.figuramc.figura.lua.api.RendererAPI;
-import org.figuramc.figura.lua.api.TextureAPI;
+import org.figuramc.figura.lua.api.*;
 import org.figuramc.figura.lua.api.action_wheel.ActionWheelAPI;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
 import org.figuramc.figura.lua.api.entity.NullEntity;
@@ -54,6 +51,7 @@ public class FiguraLuaRuntime {
     public ActionWheelAPI action_wheel;
     public AvatarAPI avatar_meta;
     public PingAPI ping;
+    public ServerPacketsAPI serverPackets;
     public TextureAPI texture;
 
     //---------------------------------

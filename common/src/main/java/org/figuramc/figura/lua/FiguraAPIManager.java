@@ -123,6 +123,8 @@ public class FiguraAPIManager {
         add(PingAPI.class);
         add(PingFunction.class);
 
+        add(ServerPacketsAPI.class);
+
         add(TextureAPI.class);
         add(FiguraTexture.class);
 
@@ -186,6 +188,7 @@ public class FiguraAPIManager {
         put("matrices", r -> MatricesAPI.INSTANCE);
         put("world", r -> WorldAPI.INSTANCE);
         put("pings", r -> r.ping = new PingAPI(r.owner));
+        put("server_packets", r -> r.serverPackets = new ServerPacketsAPI(r.owner));
         put("textures", r -> r.texture = new TextureAPI(r.owner));
         put("config", r -> new ConfigAPI(r.owner));
         put("data", r -> new DataAPI(r.owner));

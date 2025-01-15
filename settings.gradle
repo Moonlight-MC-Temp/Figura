@@ -9,7 +9,9 @@ pluginManagement {
 
 include("common")
 include("common:mojmap")
+include("server-common")
 include("fabric")
 include("forge")
+include("spigot")
 
 rootProject.name = "Figura"

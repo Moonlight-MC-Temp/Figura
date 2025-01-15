@@ -31,6 +31,8 @@ dependencies {
     include(implementation("com.neovisionaries:nv-websocket-client:$nv_websocket"))
     include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.3.6")))
 
+    include(modImplementation('me.lucko:fabric-permissions-api:0.3.1'))
+
     if(rootProject.run_on_quilt == "false") {
         modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
@@ -40,6 +42,7 @@ dependencies {
         include(modImplementation(fabricApi.module("fabric-command-api-v2", rootProject.fabric_api)))
         include(modImplementation(fabricApi.module("fabric-key-binding-api-v1", rootProject.fabric_api)))
         include(modImplementation(fabricApi.module("fabric-resource-loader-v0", rootProject.fabric_api)))
+        include(modImplementation(fabricApi.module("fabric-networking-api-v1", rootProject.fabric_api)))
     }
     else {
         modImplementation "org.quiltmc:quilt-loader:${rootProject.quilt_loader_version}"
@@ -52,6 +55,7 @@ dependencies {
         include(modCompileOnly(fabricApi.module("fabric-command-api-v2", rootProject.fabric_api)))
         include(modCompileOnly(fabricApi.module("fabric-key-binding-api-v1", rootProject.fabric_api)))
         include(modCompileOnly(fabricApi.module("fabric-resource-loader-v0", rootProject.fabric_api)))
+        include(modCompileOnly(fabricApi.module("fabric-networking-api-v1", rootProject.fabric_api)))
     }
     // Mods
     if (rootProject.run_with_modmenu == "true") {
@@ -67,6 +71,9 @@ dependencies {
 
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+
+    common(project(path: ":server-common")) { transitive false }
+    shadowCommon(project(path: ":server-common")) { transitive false }
 }
 
 

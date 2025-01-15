@@ -39,3 +39,9 @@ jobs:
         with:
           name: Forge-Artifacts
           path: forge/build/libs/
+
+      - name: Upload Spigot artifacts to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: Spigot-Artifacts
+          path: spigot/build/libs/

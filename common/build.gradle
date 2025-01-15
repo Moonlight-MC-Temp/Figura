@@ -12,6 +12,13 @@ repositories {
     }
 }
 
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it *excludes* files.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+}
+
 dependencies {
     mappings loom.layered {
         mappings("org.quiltmc:quilt-mappings:$minecraft_version+build.$mappings:intermediary-v2")
@@ -36,6 +43,9 @@ dependencies {
 
     // Test compile only is used to mount sources on an IDE without overriding vanilla classes with Optifine's
     testCompileOnly fileTree(dir: "$rootProject.projectDir/libs", include: '*.jar')
+
+    common(project(path: ":server-common")) { transitive false }
+    shadowCommon(project(path: ":server-common")) { transitive false }
 }
 
 publishing {

@@ -23,6 +23,8 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Score;
 import net.minecraft.world.scores.Scoreboard;
 import org.figuramc.figura.FiguraMod;
+import org.figuramc.figura.backend2.FSB;
+import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.lua.LuaNotNil;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.api.entity.EntityAPI;
@@ -747,6 +749,24 @@ public class ClientAPI {
         } catch (Exception e) {
             throw new LuaError("Enum " + enumName + " does not exist");
         }
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("client.fsb_connected")
+    public static boolean fsbConnected() {
+        return FSB.instance().connected();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("client.ping_rate_limit")
+    public static int pingRateLimit() {
+        return NetworkStuff.pingsRateLimit();
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("client.ping_size_limit")
+    public static int pingSizeLimit() {
+        return NetworkStuff.pingsSizeLimit();
     }
 
     @Override

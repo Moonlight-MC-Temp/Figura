@@ -17,6 +17,7 @@ public class UserData {
     public final UUID id;
     private final Queue<Avatar> avatars = new ConcurrentLinkedQueue<>();
     private Pair<BitSet, BitSet> badges;
+    private boolean fromFSB;
 
     public UserData(UUID id) {
         this.id = id;
@@ -60,5 +61,13 @@ public class UserData {
         for (Avatar avatar : avatars)
             avatar.clean();
         avatars.clear();
+    }
+
+    public void fromFSB(boolean state) {
+        fromFSB = state;
+    }
+
+    public boolean fromFSB() {
+        return fromFSB;
     }
 }

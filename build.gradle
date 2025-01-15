@@ -1,13 +1,13 @@
 plugins {
 	id "architectury-plugin" version "3.4-SNAPSHOT"
-	id "dev.architectury.loom" version "1.5-SNAPSHOT" apply false
+	id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
 }
 
 architectury {
 	minecraft = rootProject.minecraft_version
 }
 
-subprojects {
+rootProject.mod_projects.split(",").each { project(":$it") {
 	apply plugin: "dev.architectury.loom"
 
 	loom {
@@ -37,7 +37,7 @@ subprojects {
 		modCompileOnly "maven.modrinth:immediatelyfast:$immediately_fast"
 		modCompileOnly "maven.modrinth:iris:$iris"
 	}
-}
+}}
 
 allprojects {
 	apply plugin: "java"

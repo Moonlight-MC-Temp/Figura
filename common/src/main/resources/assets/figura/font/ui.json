@@ -18,7 +18,7 @@
       "file": "figura:font/status.png",
       "ascent": 8,
       "height": 10,
-      "chars": ["-*/+="]
+      "chars": ["-*/+#="]
     },
     {
       "type": "bitmap",
