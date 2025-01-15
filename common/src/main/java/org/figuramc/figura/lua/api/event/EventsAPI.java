@@ -85,6 +85,9 @@ public class EventsAPI {
     @LuaFieldDoc("events.on_play_sound")
     public final LuaEvent ON_PLAY_SOUND = new LuaEvent();
     @LuaWhitelist
+    @LuaFieldDoc("events.particle_created")
+    public final LuaEvent PARTICLE_CREATED = new LuaEvent();
+    @LuaWhitelist
     @LuaFieldDoc("events.resource_reload")
     public final LuaEvent RESOURCE_RELOAD = new LuaEvent();
     @LuaWhitelist
@@ -116,6 +119,7 @@ public class EventsAPI {
         events.put("TRIDENT_RENDER", TRIDENT_RENDER);
         events.put("ITEM_RENDER", ITEM_RENDER);
         events.put("ON_PLAY_SOUND", ON_PLAY_SOUND);
+        events.put("PARTICLE_CREATED", PARTICLE_CREATED);
         events.put("RESOURCE_RELOAD", RESOURCE_RELOAD);
         events.put("TOTEM", TOTEM);
         events.put("DAMAGE", DAMAGE);

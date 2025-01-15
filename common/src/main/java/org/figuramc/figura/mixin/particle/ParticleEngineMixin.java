@@ -5,7 +5,10 @@ import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.ResourceLocation;
+import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.ducks.ParticleEngineAccessor;
+import org.figuramc.figura.lua.api.event.EventsAPI;
+import org.figuramc.figura.lua.api.particle.LuaParticle;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,6 +30,19 @@ public abstract class ParticleEngineMixin implements ParticleEngineAccessor {
 
     @Unique private final HashMap<Particle, UUID> particleMap = new HashMap<>();
 
+    @Inject(at = @At("HEAD"), method = "add", cancellable = true)
+    private void figura$checkParticle(Particle particle, CallbackInfo ci) {
+        LuaParticle luaParticle = new LuaParticle("event", particle, null);
+        AvatarManager.executeAll("checkParticle", avatar -> {
+            var results = avatar.run("PARTICLE_CREATED", avatar.worldRender, luaParticle);
+            if (results == null) return;
+            for (int i = 0; i < results.narg(); i++) {
+                var value = results.arg(1);
+                if (value.isboolean() && value.toboolean()) ci.cancel();
+            }
+        });
+    }
+
     // This fixes a conflict with Optifine having slightly different args + it should be more stable in general, capturing Locals is bad practice
     @ModifyVariable(method = "tickParticleList", at = @At(value = "INVOKE", target = "Ljava/util/Iterator;remove()V", ordinal = 0))
     private Particle tickParticleList(Particle particle) {
@@ -41,8 +57,8 @@ public abstract class ParticleEngineMixin implements ParticleEngineAccessor {
 
     @Override @Intrinsic
     public void figura$spawnParticle(Particle particle, UUID owner) {
-        particleMap.put(particle, owner);
         this.add(particle);
+        particleMap.put(particle, owner);
     }
 
     @Override @Intrinsic
