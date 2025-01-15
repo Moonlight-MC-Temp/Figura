@@ -5,13 +5,13 @@ import org.figuramc.figura.utils.MathUtils;
 
 public enum Interpolation {
 
-    LINEAR((frames, currentFrame, targetFrame, strength, delta, type) -> {
+    LINEAR((frames, currentFrame, targetFrame, strength, delta, type, loop) -> {
         FiguraVec3 prev = frames[currentFrame].getTargetB(delta);
         FiguraVec3 next = frames[targetFrame].getTargetA(delta);
         FiguraVec3 result = MathUtils.lerp(delta, prev, next);
         return getResult(result, strength, type);
     }),
-    CATMULLROM((frames, currentFrame, targetFrame, strength, delta, type) -> {
+    CATMULLROM((frames, currentFrame, targetFrame, strength, delta, type, loop) -> {
         Keyframe prev = frames[currentFrame];
         Keyframe next = frames[targetFrame];
         Keyframe prevPrev = frames[Math.max(0, currentFrame - 1)];
@@ -19,7 +19,7 @@ public enum Interpolation {
 
         if (prevPrev == prev)
             prevPrev = frames[frames.length - 1];
-        if (nextNext == next)
+        if (nextNext == next && loop)
             nextNext = frames[0];
 
         FiguraVec3 p0 = prevPrev.getTargetB(delta);
@@ -30,7 +30,7 @@ public enum Interpolation {
         FiguraVec3 result = MathUtils.catmullrom(delta, p0, p1, p2, p3);
         return getResult(result, strength, type);
     }),
-    BEZIER((frames, currentFrame, targetFrame, strength, delta, type) -> {
+    BEZIER((frames, currentFrame, targetFrame, strength, delta, type, loop) -> {
         Keyframe prev = frames[currentFrame];
         Keyframe next = frames[targetFrame];
 
@@ -50,7 +50,7 @@ public enum Interpolation {
 
         return getResult(result, strength, type);
     }),
-    STEP((frames, currentFrame, targetFrame, strength, delta, type) -> getResult(frames[currentFrame].getTargetB(delta).copy(), strength, type));
+    STEP((frames, currentFrame, targetFrame, strength, delta, type, loop) -> getResult(frames[currentFrame].getTargetB(delta).copy(), strength, type));
 
     private final IInterpolation function;
 
@@ -62,11 +62,11 @@ public enum Interpolation {
         return type == TransformType.SCALE ? result.offset(-1).scale(strength).offset(1) : result.scale(strength);
     }
 
-    public FiguraVec3 generate(Keyframe[] keyframes, int currentFrame, int targetFrame, float strength, float delta, TransformType type) {
-        return this.function.generate(keyframes, currentFrame, targetFrame, strength, delta, type);
+    public FiguraVec3 generate(Keyframe[] keyframes, int currentFrame, int targetFrame, float strength, float delta, TransformType type, boolean loop) {
+        return this.function.generate(keyframes, currentFrame, targetFrame, strength, delta, type, loop);
     }
 
     private interface IInterpolation {
-        FiguraVec3 generate(Keyframe[] keyframes, int currentFrame, int targetFrame, float strength, float delta, TransformType type);
+        FiguraVec3 generate(Keyframe[] keyframes, int currentFrame, int targetFrame, float strength, float delta, TransformType type, boolean loop);
     }
 }

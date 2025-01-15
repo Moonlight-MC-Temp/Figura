@@ -61,7 +61,7 @@ public class AnimationPlayer {
                 }
 
                 Interpolation interpolation = next.getInterpolation() == Interpolation.BEZIER ? Interpolation.BEZIER : current.getInterpolation();
-                FiguraVec3 transform = interpolation.generate(keyframes, currentIndex, nextIndex, anim.blend, delta, type);
+                FiguraVec3 transform = interpolation.generate(keyframes, currentIndex, nextIndex, anim.blend, delta, type, anim.loop == Animation.LoopMode.LOOP);
                 type.apply(part, transform, merge);
 
                 switch (type) {
