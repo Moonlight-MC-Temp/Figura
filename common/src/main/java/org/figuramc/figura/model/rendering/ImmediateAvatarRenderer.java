@@ -17,6 +17,7 @@ import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
+import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
 import org.figuramc.figura.model.*;
@@ -104,7 +105,7 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
 
         // Set shouldRenderPivots
         int config = Configs.RENDER_DEBUG_PARTS_PIVOT.value;
-        if (!Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes() || (!avatar.isHost && config < 2))
+        if ((!avatar.isHost && config < 2) || !Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes())
             shouldRenderPivots = 0;
         else
             shouldRenderPivots = config;
@@ -130,18 +131,16 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
                     }
 
                     for (FiguraModelPart part : parts) {
-                        if (currentFilterScheme.parentType == ParentType.Item && part != itemToRender)
-                            continue;
-
-                        boolean saved = part.savedCustomization != null;
-                        if (saved) {
+                        if (currentFilterScheme.parentType == ParentType.Item && part != itemToRender) continue;
+                        if (part.savedCustomization != null) {
                             customizationStack.push(part.savedCustomization);
                             part.savedCustomization = null;
+                            renderPart(part, remainingComplexity, currentFilterScheme.initialValue);
+                            customizationStack.pop();
+                            continue;
                         }
 
                         renderPart(part, remainingComplexity, currentFilterScheme.initialValue);
-
-                        if (saved) customizationStack.pop();
                     }
 
                     if (renderLayer) {
@@ -181,8 +180,7 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
         customization.setPrimaryRenderType(RenderTypes.TRANSLUCENT);
         customization.setSecondaryRenderType(RenderTypes.EMISSIVE);
 
-        double s = 1.0 / 16;
-        customization.positionMatrix.scale(s, s, s);
+        customization.positionMatrix.scale(0.0625, 0.0625, 0.0625);
         customization.positionMatrix.rotateZ(180);
         customization.positionMatrix.translate(0, vertOffset, 0);
         customization.normalMatrix.rotateZ(180);
@@ -208,7 +206,7 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
         // test the current filter scheme
         FiguraMod.pushProfiler("predicate");
         Boolean thisPassedPredicate = currentFilterScheme.test(part.parentType, prevPredicate);
-        if (thisPassedPredicate == null || (!custom.visible)) {
+        if (thisPassedPredicate == null || !custom.visible) {
             if (part.parentType.isRenderLayer)
                 part.savedCustomization = customizationStack.peek();
             FiguraMod.popProfiler(2);
@@ -268,29 +266,17 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
         if (thisPassedPredicate) {
             // recalculate world matrices
             FiguraMod.popPushProfiler("worldMatrices");
-            if (allowMatrixUpdate) {
-                FiguraMat4 mat = partToWorldMatrices(custom);
-                part.savedPartToWorldMat.set(mat);
-            }
+            if (allowMatrixUpdate) part.savedPartToWorldMat.set(partToWorldMatrices(custom));
 
             // recalculate light
             FiguraMod.popPushProfiler("calculateLight");
             Level l;
-            if (custom.light != null) {
+            if (custom.light != null)
                 updateLight = false;
-                pivotOffsetter.light = custom.light;
-            }
             else if (updateLight && (l = Minecraft.getInstance().level) != null) {
-                FiguraVec3 pos = part.savedPartToWorldMat.apply(0d, 0d, 0d);
-                int block = l.getBrightness(LightLayer.BLOCK, pos.asBlockPos());
-                int sky = l.getBrightness(LightLayer.SKY, pos.asBlockPos());
-                customizationStack.peek().light = LightTexture.pack(block, sky);
+                var pos = part.savedPartToWorldMat.apply(0d, 0d, 0d).asBlockPos();
+                customizationStack.peek().light = LightTexture.pack(l.getBrightness(LightLayer.BLOCK, pos), l.getBrightness(LightLayer.SKY, pos));
             }
-
-            if (custom.alpha != null)
-                pivotOffsetter.alpha = custom.alpha;
-            if (custom.overlay != null)
-                pivotOffsetter.overlay = custom.overlay;
         }
 
         // mid render function
@@ -361,10 +347,10 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
         // render children
         FiguraMod.popPushProfiler("children");
         for (FiguraModelPart child : List.copyOf(part.children)) {
-            if (!renderPart(child, remainingComplexity, thisPassedPredicate)) {
-                breakRender = true;
-                break;
-            }
+            if (renderPart(child, remainingComplexity, thisPassedPredicate)) continue;
+            breakRender = true;
+            break;
+            
         }
 
         // reset the parent
@@ -534,6 +520,7 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
     private static final FiguraVec4 pos = FiguraVec4.of();
     private static final FiguraVec3 normal = FiguraVec3.of();
     private static final FiguraVec3 uv = FiguraVec3.of(0, 0, 1);
+    private final List<ToBeConsumedVertexData> consumableVertexes = new ArrayList<ToBeConsumedVertexData>(); // did not use duck ai again naahhhhh
     private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices) {
         int vertCount = faceCount * 4;
 
@@ -542,32 +529,81 @@ public class ImmediateAvatarRenderer extends AvatarRenderer {
 
         int overlay = customization.overlay;
         int light = vertexData.fullBright ? LightTexture.FULL_BRIGHT : customization.light;
+        ToBeConsumedVertexData[] vertexDatas = new ToBeConsumedVertexData[vertCount]; // why the fuck did i use duckai for this
+        for (int i = 0; i < vertCount; i++) {
+            Vertex vertex = vertices.get(i);
 
+            pos.set(vertex.x, vertex.y, vertex.z, 1);
+            pos.transform(customization.positionMatrix);
+            pos.add(pos.normalized().scale(vertexData.vertexOffset));
+            normal.set(vertex.nx, vertex.ny, vertex.nz);
+            normal.transform(customization.normalMatrix);
+            uv.set(vertex.u, vertex.v, 1);
+            uv.divide(uvFixer);
+            uv.transform(customization.uvMatrix);
+
+            vertexDatas[i] = ToBeConsumedVertexData.get(this,
+                pos,
+                vertexData.color, customization.alpha, // Yes I know this is supposed to be a static variable but shhhhh
+                uv,
+                overlay,
+                light,
+                normal
+            );
+
+        }
         VERTEX_BUFFER.getBufferFor(vertexData.renderType, vertexData.primary, vertexConsumer -> {
             for (int i = 0; i < vertCount; i++) {
-                Vertex vertex = vertices.get(i);
-
-                pos.set(vertex.x, vertex.y, vertex.z, 1);
-                pos.transform(customization.positionMatrix);
-                pos.add(pos.normalized().scale(vertexData.vertexOffset));
-                normal.set(vertex.nx, vertex.ny, vertex.nz);
-                normal.transform(customization.normalMatrix);
-                uv.set(vertex.u, vertex.v, 1);
-                uv.divide(uvFixer);
-                uv.transform(customization.uvMatrix);
-
-                vertexConsumer
-                        .vertex(pos.x, pos.y, pos.z)
-                        .color((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, customization.alpha)
-                        .uv((float) uv.x, (float) uv.y)
-                        .overlayCoords(overlay)
-                        .uv2(light)
-                        .normal((float) normal.x, (float) normal.y, (float) normal.z)
-                        .endVertex();
+                ToBeConsumedVertexData data = vertexDatas[i];
+                data.consume(this,vertexConsumer);
             }
         });
     }
 
+    private static class ToBeConsumedVertexData {
+        public Float x,y,z;
+        public Float r,g,b,a;
+        public Float uvX,uvY;
+        public int overlay;
+        public int light;
+        public Float nX,nY,nZ;
+        public boolean consumed;
+        public ToBeConsumedVertexData() {}
+        public void consume(ImmediateAvatarRenderer renderer,VertexConsumer vertexConsumer){
+            vertexConsumer
+                .vertex(this.x, this.y, this.z)
+                .color(this.r, this.g, this.b,this.a)
+                .uv(this.uvX, this.uvY)
+                .overlayCoords(this.overlay)
+                .uv2(this.light)
+                .normal(this.nX, this.nY, this.nZ)
+                .endVertex();
+            consumed = true;
+            renderer.consumableVertexes.add(this);
+        }
+        public static ToBeConsumedVertexData get(ImmediateAvatarRenderer renderer,FiguraVec4 pos, FiguraVec3 color,float alpha, FiguraVec3 uv, int overlay, int light, FiguraVec3 normal) {
+            ToBeConsumedVertexData data = renderer.consumableVertexes.size() == 0 ? 
+                new ToBeConsumedVertexData() : 
+                renderer.consumableVertexes.remove(renderer.consumableVertexes.size()-1);
+            data.consumed = false;
+            // this makes me want to kill someone
+            data.x = (float) pos.x;
+            data.y = (float) pos.y;
+            data.z = (float) pos.z;
+            data.r = (float) color.x;
+            data.g = (float) color.y;
+            data.b = (float) color.z;
+            data.a = alpha;
+            data.uvX = (float) uv.x;
+            data.uvY = (float) uv.y;
+            data.nX = (float) normal.x;
+            data.nY = (float) normal.y;
+            data.nZ = (float) normal.z;
+            data.overlay = overlay;
+            data.light = light;
+            return data;
+        }
+    }
     private static class VertexData {
         public RenderType renderType;
         public boolean fullBright;
