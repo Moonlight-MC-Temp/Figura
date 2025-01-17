@@ -30,8 +30,8 @@ public enum RenderTypes {
     END_GATEWAY(t -> RenderType.endGateway(), false),
     TEXTURED_PORTAL(FiguraRenderType.TEXTURED_PORTAL),
 
-    GLINT(t -> RenderType.armorEntityGlint(), false, false),
-    GLINT2(t -> RenderType.entityGlint(), false, false),
+    GLINT(t -> RenderType.entityGlint(), false, false),
+    GLINT2(t -> RenderType.glint(), false, false),
     TEXTURED_GLINT(FiguraRenderType.TEXTURED_GLINT, true, false),
 
     LINES(t -> RenderType.lines(), false),
