@@ -314,6 +314,10 @@ public class Avatar {
         });
     }
 
+	public void submit(Runnable r) {
+		events.offer(r);
+	}
+
     public LuaValue loadScript(String name, String chunk) {
         return scriptError || luaRuntime == null || !loaded ? null : luaRuntime.load(name, chunk);
     }
