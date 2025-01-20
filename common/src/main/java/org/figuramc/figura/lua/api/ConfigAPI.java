@@ -79,6 +79,19 @@ public class ConfigAPI {
         }
     }
 
+    private void writeWithRetries(Path path, byte[] data, int retries) throws Exception {
+        try (OutputStream fs = Files.newOutputStream(path)) {
+            fs.write(data);    
+        } catch (Exception e) {
+            if (retries > 0) {
+                Thread.sleep(5); // this feels suspicious, but it shouldn't be noticable (25ms at most, and only on save)
+                writeWithRetries(path, data, retries - 1);
+            } else {
+                throw e;
+            }
+        }
+    }
+        
     // write
     private void write() {
         // parse file target
@@ -90,11 +103,11 @@ public class ConfigAPI {
             root.add(key.toString(), writeArg(luaTable.get(key), new JsonObject()));
 
         // write file
-        try (OutputStream fs = Files.newOutputStream(path)) {
-            fs.write(GSON.toJson(root).getBytes());
+        try {
+            writeWithRetries(path, GSON.toJson(root).getBytes(), 5);
         } catch (Exception e) {
             FiguraMod.LOGGER.error("", e);
-            throw new LuaError("Failed to save avatar data file");
+            throw new LuaError("Failed to save avatar data file: " + e);
         }
     }
 
