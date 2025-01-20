@@ -62,6 +62,7 @@ public class RendererAPI {
     public FiguraVec4 blockOutlineColor;
     public Boolean upsideDown;
     public Boolean rootRotation;
+    public Boolean renderArrows;
 
     public RendererAPI(Avatar owner) {
         this.owner = owner.owner;
@@ -438,6 +439,22 @@ public class RendererAPI {
     public RendererAPI postEffect(String effect) {
         return setPostEffect(effect);
     }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = Boolean.class,
+                    argumentNames = "bool"
+            ),
+            aliases = "renderArrows",
+            value = "renderer.set_render_arrows"
+    )
+    public RendererAPI setRenderArrows(Boolean bool) {
+        this.renderArrows = bool;
+        return this;
+    }
+    @LuaWhitelist
+    public RendererAPI renderArrows(Boolean bool) { return setRenderArrows(bool); }
 
     @LuaWhitelist
     @LuaMethodDoc("renderer.get_fov")
