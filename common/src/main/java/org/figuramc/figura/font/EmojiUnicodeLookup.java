@@ -57,10 +57,6 @@ public class EmojiUnicodeLookup {
         return shortcutLookup.getOrDefault(shortcut, null);
     }
 
-
-
-
-
     public Collection<EmojiMetadata> metadataValues() {
         return metadataLookup.values();
     }

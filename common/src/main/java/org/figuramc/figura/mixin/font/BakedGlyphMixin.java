@@ -49,7 +49,7 @@ public abstract class BakedGlyphMixin implements BakedGlyphAccessor {
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     public void render(boolean italic, float x, float y, Matrix4f matrix, VertexConsumer vertexConsumer, float red, float green, float blue, float alpha, int light, CallbackInfo ci) {
-        if (figura$metadata == null) return;
+        if (figura$metadata == null || figura$metadata.frames < 2) return;
 
         float h = this.up - 3.0f;
         float j = this.down - 3.0f;
